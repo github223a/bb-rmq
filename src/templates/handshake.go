@@ -8,6 +8,8 @@ import (
 const NAMESPACE = "registration"
 const HANDSHAKE = "handshake"
 const INTERNAL = "internal"
+const DOMAIN = "russia"
+const LOCALE = "ru"
 
 func generateId() uuid.UUID{
 	id, err := uuid.NewV4()
@@ -43,8 +45,8 @@ var req = Request{
 	generateId(),
 	INTERNAL,
 	HANDSHAKE,
-	"russia",
-	"ru",
+	DOMAIN,
+	LOCALE,
 	Params{
 		Namespace: NAMESPACE,
 		Methods: Empty{},

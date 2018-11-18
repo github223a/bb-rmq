@@ -69,33 +69,80 @@ func failOnError(err error, msg string) {
 func Init() {
 	url := getRabbitUrl()
 	fmt.Println(url)
-	//conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
 	conn, err := amqp.Dial(url)
 	failOnError(err, "Failed to connect to RabbitMQ")
-	defer conn.Close()
+	//defer conn.Close()
 
-	ch, err := conn.Channel()
-	failOnError(err, "Failed to open a channel")
-	defer ch.Close()
+
 
 	channels := rabbitMQ["channels"].(map[string] interface{})
 
-	for name, _ := range channels {
-		fmt.Println(name)
+	for key, _ := range channels {
+
+		ch, err := conn.Channel()
+		failOnError(err, "Failed to open a channel")
+		//defer ch.Close()
+
+		fmt.Println(key)
+		settings := channels[key].(map[string] interface{})
+		exchangeName := settings["exchangeName"].(string)
+		exchangeType := settings["exchangeType"].(string)
+		queueName := settings["queueName"].(string)
+		consumeActivate := settings["consumeActivate"].(bool)
+		queueOptions := settings["queueOptions"].(map[string] interface{})
+
+		args := make(amqp.Table)
+
+		args["x-message-ttl"] = int32(30000)
+
+		err = ch.ExchangeDeclare(
+			exchangeName,   // name
+			exchangeType, // type
+			true,     // durable
+			false,    // auto-deleted
+			false,    // internal
+			false,    // no-wait
+			nil,      // arguments
+		)
+		failOnError(err, "Failed to declare an exchange")
+
+		_, queueError := ch.QueueDeclare(
+			queueName, // name
+			queueOptions["durable"].(bool),   // durable
+			queueOptions["autoDelete"].(bool),   // delete when unused
+			false,   // exclusive
+			false,   // no-wait
+			args,     // arguments
+		)
+		failOnError(queueError, "Failed to declare a queue")
+
+		if consumeActivate {
+			msgs, err := ch.Consume(
+				queueName, // queue
+				"",     // consumer
+				queueOptions["noAck"].(bool),   // auto-ack
+				false,  // exclusive
+				false,  // no-local
+				false,  // no-wait
+				nil,    // args
+			)
+			failOnError(err, "Failed to register a consumer")
+
+			//forever := make(chan bool)
+
+			go func() {
+				for d := range msgs {
+					log.Printf("Received a message: %s", d.Body)
+				}
+			}()
+
+			log.Printf(" [*] Waiting for messages to channel. To exit press CTRL+C")
+			//<- forever
+		}
 	}
 
-	args := make(amqp.Table)
-	args["x-message-ttl"] = int32(30000)
 
-	q, err := ch.QueueDeclare(
-		"internal", // name
-		true,   // durable
-		false,   // delete when unused
-		false,   // exclusive
-		false,   // no-wait
-		args,     // arguments
-	)
-	failOnError(err, "Failed to declare a queue")
+
 
 	request := templates.Handshake()
 	jsonData, err := json.Marshal(request)
@@ -103,15 +150,15 @@ func Init() {
 
 	fmt.Println("json = ", requestMsg)
 
-	err = ch.Publish(
-		"",      // exchange
-		q.Name,           // routing key
-		false,  // mandatory
-		false,  // immediate
-		amqp.Publishing{
-			ContentType: "text/plain",
-			Body:        []byte(requestMsg),
-		})
-	log.Printf(" [x] Sent %s", requestMsg)
-	failOnError(err, "Failed to publish a message")
+	//err = ch.Publish(
+	//	"",      // exchange
+	//	q.Name,           // routing key
+	//	false,  // mandatory
+	//	false,  // immediate
+	//	amqp.Publishing{
+	//		ContentType: "text/plain",
+	//		Body:        []byte(requestMsg),
+	//	})
+	//log.Printf(" [x] Sent %s", requestMsg)
+	//failOnError(err, "Failed to publish a message")
 }
