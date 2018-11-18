@@ -1,13 +1,15 @@
 package rmq
 
 import (
-	"../templates"
+	//"../templates"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/streadway/amqp"
 	"io/ioutil"
 	"log"
 	"os"
+	"time"
 )
 
 const GUEST =  "guest"
@@ -66,6 +68,71 @@ func failOnError(err error, msg string) {
 	}
 }
 
+func declareQueue (ch *amqp.Channel, settings map[string] interface{}) {
+	queueName := settings["queueName"].(string)
+	queueOptions := settings["queueOptions"].(map[string] interface{})
+
+	args := make(amqp.Table)
+	args["x-message-ttl"] = int32(30000)
+
+	_, queueError := ch.QueueDeclare(
+		queueName, // name
+		queueOptions["durable"].(bool),   // durable
+		queueOptions["autoDelete"].(bool),   // delete when unused
+		false,   // exclusive
+		false,   // no-wait
+		args,     // arguments
+	)
+	failOnError(queueError, "Failed to declare a queue")
+}
+
+func declareExchange (ch *amqp.Channel, settings map[string] interface{}) {
+	exchangeName := settings["exchangeName"].(string)
+	exchangeType := settings["exchangeType"].(string)
+
+	err := ch.ExchangeDeclare(
+		exchangeName,   // name
+		exchangeType, // type
+		true,     // durable
+		false,    // auto-deleted
+		false,    // internal
+		false,    // no-wait
+		nil,      // arguments
+	)
+	failOnError(err, "Failed to declare an exchange")
+}
+
+func declareCunsumer (ch *amqp.Channel, settings map[string] interface{}, forever chan bool) {
+	queueName := settings["queueName"].(string)
+	queueOptions := settings["queueOptions"].(map[string] interface{})
+
+	msgs, err := ch.Consume(
+		queueName, // queue
+		"",     // consumer
+		queueOptions["noAck"].(bool),   // auto-ack
+		false,  // exclusive
+		false,  // no-local
+		false,  // no-wait
+		nil,    // args
+	)
+	failOnError(err, "Failed to register a consumer")
+	c1 := make(chan bool)
+
+	go func() {
+		for d := range msgs {
+			log.Printf("Received a message: %s", d.Body)
+			dot_count := bytes.Count(d.Body, []byte("."))
+			t := time.Duration(dot_count)
+			time.Sleep(t * time.Second)
+			log.Printf("Done")
+			d.Ack(false)
+			//forever <- true
+		}
+	}()
+	log.Printf(" [*] Waiting for messages from %s. To exit press CTRL+C", queueName)
+	<- c1
+}
+
 func Init() {
 	url := getRabbitUrl()
 	fmt.Println(url)
@@ -74,81 +141,34 @@ func Init() {
 	//defer conn.Close()
 
 
-
 	channels := rabbitMQ["channels"].(map[string] interface{})
 
 	for key, _ := range channels {
 
-		ch, err := conn.Channel()
+		channel, err := conn.Channel()
 		failOnError(err, "Failed to open a channel")
 		//defer ch.Close()
 
 		fmt.Println(key)
 		settings := channels[key].(map[string] interface{})
-		exchangeName := settings["exchangeName"].(string)
-		exchangeType := settings["exchangeType"].(string)
-		queueName := settings["queueName"].(string)
 		consumeActivate := settings["consumeActivate"].(bool)
-		queueOptions := settings["queueOptions"].(map[string] interface{})
 
-		args := make(amqp.Table)
+		forever := make(chan bool, 1)
 
-		args["x-message-ttl"] = int32(30000)
-
-		err = ch.ExchangeDeclare(
-			exchangeName,   // name
-			exchangeType, // type
-			true,     // durable
-			false,    // auto-deleted
-			false,    // internal
-			false,    // no-wait
-			nil,      // arguments
-		)
-		failOnError(err, "Failed to declare an exchange")
-
-		_, queueError := ch.QueueDeclare(
-			queueName, // name
-			queueOptions["durable"].(bool),   // durable
-			queueOptions["autoDelete"].(bool),   // delete when unused
-			false,   // exclusive
-			false,   // no-wait
-			args,     // arguments
-		)
-		failOnError(queueError, "Failed to declare a queue")
+		declareExchange(channel, settings)
+		declareQueue(channel, settings)
 
 		if consumeActivate {
-			msgs, err := ch.Consume(
-				queueName, // queue
-				"",     // consumer
-				queueOptions["noAck"].(bool),   // auto-ack
-				false,  // exclusive
-				false,  // no-local
-				false,  // no-wait
-				nil,    // args
-			)
-			failOnError(err, "Failed to register a consumer")
-
-			//forever := make(chan bool)
-
-			go func() {
-				for d := range msgs {
-					log.Printf("Received a message: %s", d.Body)
-				}
-			}()
-
-			log.Printf(" [*] Waiting for messages to channel. To exit press CTRL+C")
-			//<- forever
+			go declareCunsumer(channel, settings, forever)
 		}
 	}
 
 
+	//request := templates.Handshake()
+	//jsonData, err := json.Marshal(request)
+	//requestMsg := string(jsonData)
 
-
-	request := templates.Handshake()
-	jsonData, err := json.Marshal(request)
-	requestMsg := string(jsonData)
-
-	fmt.Println("json = ", requestMsg)
+	//fmt.Println("json = ", requestMsg)
 
 	//err = ch.Publish(
 	//	"",      // exchange
