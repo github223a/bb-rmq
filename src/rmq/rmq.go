@@ -71,11 +71,14 @@ func getRabbitUrl() string {
 		field, found := reflectConnection.FieldByName(name)
 		fmt.Println("field = ", field)
 		fmt.Println("found = ", found)
-		fmt.Println("value = ", field)
 
-		if found {
-			url = fmt.Sprintf(field.Tag.Get(name))
-		}
+		r := reflect.ValueOf(reflectConnection)
+		f := reflect.Indirect(r).FieldByName(name)
+		fmt.Println("value = ", reflectConnection.Out())
+
+		//if found {
+		//	url = fmt.Sprintf(field.Tag.Get(name))
+		//}
 	}
 
 	fmt.Println("url 1 = ", url)
