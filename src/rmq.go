@@ -1,7 +1,7 @@
-package rmq
+package src
 
 import (
-	"../templates"
+	"./templates"
 	"encoding/json"
 	"fmt"
 	"github.com/streadway/amqp"
@@ -14,7 +14,7 @@ import (
 
 var config = readConfig()
 
-func failOnError(err error, msg string) {
+func FailOnError(err error, msg string) {
 	if err != nil {
 		log.Fatalf("%s: %s", msg, err)
 	}
@@ -24,7 +24,7 @@ func readConfig() templates.Config {
 	var config templates.Config
 
 	configFile, err := os.Open("./src/config.development.json")
-	failOnError(err, "Error on open config file.")
+	FailOnError(err, "Error on open config file.")
 	defer configFile.Close()
 
 	byteValue, _ := ioutil.ReadAll(configFile)
@@ -49,16 +49,32 @@ func getConfigIntValue(reflectConnection reflect.Type, variable *int, name strin
 	}
 }
 
+func getQueueOption(queueOptions map[string] interface{}, name string) bool {
+	if queueOptions[name] == nil {
+		switch name {
+			case "durable":
+				return true
+			case "autoDelete":
+				return false
+			case "noAck":
+				return false
+			default:
+				return true
+		}
+	}
+	return queueOptions[name].(bool)
+}
+
 func getRabbitUrl() string {
 	template := "%s://%s:%s@%s:%d"
 	protocol, hostname, username, password, port :=
-		config.Connection.Protocol,
-		config.Connection.Hostname,
-		config.Connection.Username,
-		config.Connection.Password,
-		config.Connection.Port
+		config.RabbitMQ.Connection.Protocol,
+		config.RabbitMQ.Connection.Hostname,
+		config.RabbitMQ.Connection.Username,
+		config.RabbitMQ.Connection.Password,
+		config.RabbitMQ.Connection.Port
 
-	reflectConnection := reflect.TypeOf(config.Connection)
+	reflectConnection := reflect.TypeOf(config.RabbitMQ.Connection)
 
 	getConfigValue(reflectConnection, &protocol, "Protocol")
 	getConfigValue(reflectConnection, &hostname, "Hostname")
@@ -74,17 +90,17 @@ func declareQueue (ch *amqp.Channel, settings map[string] interface{}) {
 	queueOptions := settings["queueOptions"].(map[string] interface{})
 
 	args := make(amqp.Table)
-	args["x-message-ttl"] = int32(30000)
+	args["x-message-ttl"] = int32(queueOptions["messageTtl"].(float64))
 
 	_, queueError := ch.QueueDeclare(
 		queueName, // name
-		queueOptions["durable"].(bool),   // durable
-		queueOptions["autoDelete"].(bool),   // delete when unused
+		getQueueOption(queueOptions, "durable"),   // durable
+		getQueueOption(queueOptions, "autoDelete"),   // delete when unused
 		false,   // exclusive
 		false,   // no-wait
 		args,     // arguments
 	)
-	failOnError(queueError, "Failed to declare a queue")
+	FailOnError(queueError, "Failed to declare a queue")
 }
 
 func declareExchange (ch *amqp.Channel, settings map[string] interface{}) {
@@ -100,22 +116,37 @@ func declareExchange (ch *amqp.Channel, settings map[string] interface{}) {
 		false,    // no-wait
 		nil,      // arguments
 	)
-	failOnError(err, "Failed to declare an exchange")
+	FailOnError(err, "Failed to declare an exchange")
+}
+
+func bindQueue(ch *amqp.Channel, settings map[string] interface{}) {
+	queueName := settings["queueName"].(string)
+	exchangeName := settings["exchangeName"].(string)
+	bindingKey := settings["bindingKey"].(string)
+
+	err := ch.QueueBind(
+		queueName,      // queue name
+		bindingKey,    // routing key
+		exchangeName, // exchange
+		false,
+		nil)
+	FailOnError(err, "Failed to bind a queue")
 }
 
 func declareCunsumer (ch *amqp.Channel, settings map[string] interface{}) {
 	queueName := settings["queueName"].(string)
 	queueOptions := settings["queueOptions"].(map[string] interface{})
+
 	msgs, err := ch.Consume(
 		queueName, // queue
 		"",     // consumer
-		queueOptions["noAck"].(bool),   // auto-ack
+		getQueueOption(queueOptions, "noAck"),   // auto-ack
 		false,  // exclusive
 		false,  // no-local
 		false,  // no-wait
 		nil,    // args
 	)
-	failOnError(err, "Failed to register a consumer")
+	FailOnError(err, "Failed to register a consumer")
 
 	go func() {
 		for d := range msgs {
@@ -125,48 +156,34 @@ func declareCunsumer (ch *amqp.Channel, settings map[string] interface{}) {
 	log.Printf(" [*] Waiting for messages from %s. To exit press CTRL+C", queueName)
 }
 
-func Init() {
+func RmqInit() {
 	url := getRabbitUrl()
-	fmt.Println("url = ", url)
 	conn, err := amqp.Dial(url)
-	failOnError(err, "Failed to connect to rabbitMQ")
+	FailOnError(err, "Failed to connect to rabbitMQ")
 	defer conn.Close()
 
-	channels := config.Channels
+	channels := config.RabbitMQ.Channels
 	forever := make(chan bool)
 
 	for key, _ := range channels {
 		channel, err := conn.Channel()
-		failOnError(err, "Failed to open a channel")
+		FailOnError(err, "Failed to open a channel")
 		defer channel.Close()
 
 		settings := channels[key].(map[string] interface{})
 		consumeActivate := settings["consumeActivate"].(bool)
+		bindingKey := settings["bindingKey"]
 
 		declareExchange(channel, settings)
 		declareQueue(channel, settings)
+
+		if bindingKey != nil {
+			bindQueue(channel, settings)
+		}
 
 		if consumeActivate {
 			declareCunsumer(channel, settings)
 		}
 	}
 	<-forever
-
-	//request := templates.Handshake()
-	//jsonData, err := json.Marshal(request)
-	//requestMsg := string(jsonData)
-	//
-	//fmt.Println("json = ", requestMsg)
-	//
-	//err = channel.Publish(
-	//	"",      // exchange
-	//	queue.Name,           // routing key
-	//	false,  // mandatory
-	//	false,  // immediate
-	//	amqp.Publishing{
-	//		ContentType: "text/plain",
-	//		Body:        []byte(requestMsg),
-	//	})
-	//log.Printf(" [x] Sent %s", requestMsg)
-	//failOnError(err, "Failed to publish a message")
 }

@@ -1,9 +1,9 @@
 package main
 
-import (
-	"./src/rmq"
+import(
+	"./src"
 )
 
 func main() {
-	rmq.Init()
+	src.RmqInit()
 }
