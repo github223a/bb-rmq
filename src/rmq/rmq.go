@@ -51,7 +51,7 @@ func getUserAndPassword(username, password string) string {
 //}
 
 func getRabbitUrl() string {
-	url := "%s://%s:%s@%s:%s"
+	url := "%s://%s:%s@%s:%d"
 	port := config.Connection.Port
 	protocol, hostname, username, password :=
 		config.Connection.Protocol,
