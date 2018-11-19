@@ -14,14 +14,17 @@ import (
 
 var config = readConfig()
 
+func failOnError(err error, msg string) {
+	if err != nil {
+		log.Fatalf("%s: %s", msg, err)
+	}
+}
+
 func readConfig() templates.Config {
 	var config templates.Config
 
 	configFile, err := os.Open("./src/config.development.json")
-	if err != nil {
-		fmt.Println(err)
-	}
-
+	failOnError(err, "Error on open config file.")
 	defer configFile.Close()
 
 	byteValue, _ := ioutil.ReadAll(configFile)
@@ -36,6 +39,7 @@ func getConfigValue(reflectConnection reflect.Type, variable *string, name strin
 		*variable = value
 	}
 }
+
 func getConfigIntValue(reflectConnection reflect.Type, variable *int, name string ) {
 	if *variable == 0 {
 		field, _ := reflectConnection.FieldByName(name)
@@ -46,7 +50,6 @@ func getConfigIntValue(reflectConnection reflect.Type, variable *int, name strin
 }
 
 func getRabbitUrl() string {
-	var url string
 	template := "%s://%s:%s@%s:%d"
 	protocol, hostname, username, password, port :=
 		config.Connection.Protocol,
@@ -63,15 +66,7 @@ func getRabbitUrl() string {
 	getConfigValue(reflectConnection, &password, "Password")
 	getConfigIntValue(reflectConnection, &port, "Port")
 
-	url = fmt.Sprintf(template, protocol, username, password, hostname, port)
-
-	return url
-}
-
-func failOnError(err error, msg string) {
-	if err != nil {
-		log.Fatalf("%s: %s", msg, err)
-	}
+	return fmt.Sprintf(template, protocol, username, password, hostname, port)
 }
 
 func declareQueue (ch *amqp.Channel, settings map[string] interface{}) {
@@ -137,7 +132,6 @@ func Init() {
 	failOnError(err, "Failed to connect to rabbitMQ")
 	defer conn.Close()
 
-
 	channels := config.Channels
 	forever := make(chan bool)
 
@@ -146,7 +140,6 @@ func Init() {
 		failOnError(err, "Failed to open a channel")
 		defer channel.Close()
 
-		fmt.Println(key)
 		settings := channels[key].(map[string] interface{})
 		consumeActivate := settings["consumeActivate"].(bool)
 
