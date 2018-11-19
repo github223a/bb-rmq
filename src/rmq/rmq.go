@@ -49,51 +49,80 @@ func getUserAndPassword(username, password string) string {
 //	return result
 //}
 
+
+
 func getRabbitUrl() string {
 	var url string
-	//var protocol, hostname, username, password string
-	//var port int
-	var keys = [5]string {
-		"Protocol",
-		"Hostname",
-		"Username",
-		"Password",
-		"Port",
-	}
-	var reflectConnection = reflect.TypeOf(config.Connection)
 
-	for i := 0; i < reflectConnection.NumField(); i++ {
-		fmt.Println(i)
-	}
-	url = "%s://%s@%s:%s"
+	url = "%s://%s:%s@%s:%s"
 
-	for _, name := range keys {
-		field, found := reflectConnection.FieldByName(name)
-		fmt.Println("field = ", field)
-		fmt.Println("found = ", found)
+	protocol, hostname, username, password, port :=
+		config.Connection.Protocol,
+		config.Connection.Hostname,
+		config.Connection.Username,
+		config.Connection.Password,
+		config.Connection.Port
+	fmt.Println(protocol)
+	fmt.Println(hostname)
+	fmt.Println(username)
+	fmt.Println(password)
+	fmt.Println(port)
 
-		r := reflect.ValueOf(reflectConnection)
-		f := reflect.Indirect(r).FieldByName(name)
-		fmt.Println("value = ", f.String())
-
-		//if found {
-		//	url = fmt.Sprintf(field.Tag.Get(name))
-		//}
+	if username == "" {
+		reflectConnection := reflect.TypeOf(config.Connection)
+		field, _ := reflectConnection.FieldByName("Username")
+		value := field.Tag.Get("default")
+		username = value
+		fmt.Println("username 2 = ", username)
 	}
 
-	fmt.Println("url 1 = ", url)
+	//var keys = [5]string {
+	//	"protocol",
+	//	"hostname",
+	//	"username",
+	//	"password",
+	//	"port",
+	//}
+
+	//for _, name := range keys {
+	//	field := config.Connection[name]
+	//	fmt.Println(field)
+	//}
+	//reflectConnection := reflect.TypeOf(config.Connection)
+
+	//for i := 0; i < reflectConnection.NumField(); i++ {
+	//	field := reflectConnection.Field(i)
+	//	name := field.Tag.Get("json")
+	//	fmt.Println("value = ", name)
+	//	fmt.Println("field = ", field)
+	//
+	//}
+
+	//for _, name := range keys {
+	//	field, found := reflectConnection.FieldByName(name)
+	//
+	//	//r := reflect.ValueOf(reflectConnection)
+	//	//f := reflect.Indirect(r).FieldByName(name)
+	//
+	//	//fmt.Println("field = ", field)
+	//	//fmt.Println("found = ", found)
+	//	//fmt.Println("value = ", f)
+	//
+	//	//if found {
+	//	//	url = fmt.Sprintf(field.Tag.Get(name))
+	//	//}
+	//}
 
 	//defaultHostname := field.Tag.Get("default")
 	//fmt.Println("field", field.Tag.Get("default"), found)
 
-
-	return url
 	//return fmt.Sprintf("%s://%s@%s:%s",
 	//	protocol,
 	//	getUserAndPassword(username, password),
 	//	hostname,
 	//	string(port),
 	//)
+	return url
 }
 
 func failOnError(err error, msg string) {
