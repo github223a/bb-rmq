@@ -1,14 +1,12 @@
 package rmq
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/streadway/amqp"
 	"io/ioutil"
 	"log"
 	"os"
-	"time"
 )
 
 const GUEST =  "guest"
@@ -101,7 +99,7 @@ func declareExchange (ch *amqp.Channel, settings map[string] interface{}) {
 	failOnError(err, "Failed to declare an exchange")
 }
 
-func declareCunsumer (ch *amqp.Channel, settings map[string] interface{}, forever chan bool) {
+func declareCunsumer (ch *amqp.Channel, settings map[string] interface{}) {
 	queueName := settings["queueName"].(string)
 	queueOptions := settings["queueOptions"].(map[string] interface{})
 	msgs, err := ch.Consume(
@@ -117,19 +115,10 @@ func declareCunsumer (ch *amqp.Channel, settings map[string] interface{}, foreve
 
 	go func() {
 		for d := range msgs {
-			log.Printf("Received a message in %s: %s", queueName, d.Body)
-			dot_count := bytes.Count(d.Body, []byte("."))
-			t := time.Duration(dot_count)
-			time.Sleep(t * time.Second)
-			log.Printf("Done")
-			d.Ack(true)
-			//<-forever
+			log.Printf("Received a message from %s: %s", queueName, d.Body)
 		}
 	}()
 	log.Printf(" [*] Waiting for messages from %s. To exit press CTRL+C", queueName)
-	//<-forever
-	//forever <- true
-
 }
 
 func Init() {
@@ -137,33 +126,32 @@ func Init() {
 	fmt.Println(url)
 	conn, err := amqp.Dial(url)
 	failOnError(err, "Failed to connect to RabbitMQ")
-	//defer conn.Close()
+	defer conn.Close()
 
 
 	channels := rabbitMQ["channels"].(map[string] interface{})
+	forever := make(chan bool)
 
 	for key, _ := range channels {
 
 		channel, err := conn.Channel()
 		failOnError(err, "Failed to open a channel")
-		//defer ch.Close()
+		defer channel.Close()
 
 		fmt.Println(key)
 		settings := channels[key].(map[string] interface{})
 		consumeActivate := settings["consumeActivate"].(bool)
 
-		forever := make(chan bool, 1)
 
 		declareExchange(channel, settings)
 		declareQueue(channel, settings)
 
 		if consumeActivate {
-			go declareCunsumer(channel, settings, forever)
+			declareCunsumer(channel, settings)
 		}
-		<-forever
-		//m := <-forever
-		//fmt.Println("m = ", m)
 	}
+	<-forever
+
 
 	//request := templates.Handshake()
 	//jsonData, err := json.Marshal(request)
