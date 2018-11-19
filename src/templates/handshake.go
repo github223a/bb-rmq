@@ -38,9 +38,6 @@ type Request struct {
 	Source string `json:"source"`
 }
 
-
-
-
 var req = Request{
 	generateId(),
 	INTERNAL,

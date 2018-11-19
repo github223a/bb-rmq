@@ -1,21 +1,23 @@
 package rmq
 
 import (
+	"../templates"
 	"encoding/json"
 	"fmt"
 	"github.com/streadway/amqp"
 	"io/ioutil"
 	"log"
 	"os"
+	"reflect"
 )
 
 const GUEST =  "guest"
+const RABBIT_PORT = "5672"
 
-var CONFIG = readConfig()
-var rabbitMQ = CONFIG["rabbitMQ"].(map[string] interface{})
+var config = readConfig()
 
-func readConfig() map[string]interface{} {
-	var config map[string]interface{}
+func readConfig() templates.Config {
+	var config templates.Config
 
 	configFile, err := os.Open("./src/config.development.json")
 	if err != nil {
@@ -26,37 +28,69 @@ func readConfig() map[string]interface{} {
 
 	byteValue, _ := ioutil.ReadAll(configFile)
 	json.Unmarshal([]byte(byteValue), &config)
-
+	fmt.Println(config)
 	return config
 }
 
-func getRabbitUrl() string{
+func getUserAndPassword(username, password string) string {
+	//result = username + ":" + password
+	//result = GUEST + ":" + GUEST
+	return username + ":" + password
+}
+
+//func getPort(port string) string {
+//	var result string
+//
+//	if portOk {
+//		result = string(port)
+//	} else {
+//		result = RABBIT_PORT
+//	}
+//	return result
+//}
+
+func getRabbitUrl() string {
 	var url string
+	//var protocol, hostname, username, password string
+	//var port int
+	var keys = [5]string {
+		"Protocol",
+		"Hostname",
+		"Username",
+		"Password",
+		"Port",
+	}
+	var reflectConnection = reflect.TypeOf(config.Connection)
 
-	connection := rabbitMQ["connection"].(map[string] interface{})
-	protocol := connection["protocol"].(string)
-	hostname := connection["hostname"].(string)
-	username, userOk := connection["username"].(string)
-	password, passOk := connection["password"].(string)
-	port, portOk := connection["port2"].(string)
+	for i := 0; i < reflectConnection.NumField(); i++ {
+		fmt.Println(i)
+	}
+	url = "%s://%s@%s:%s"
 
-	url = fmt.Sprintf("%s://", protocol)
+	for _, name := range keys {
+		field, found := reflectConnection.FieldByName(name)
+		fmt.Println("field = ", field)
+		fmt.Println("found = ", found)
+		fmt.Println("value = ", field)
 
-	if userOk && passOk {
-		url += username + ":" + password
-	} else {
-		url += GUEST + ":" + GUEST
+		if found {
+			url = fmt.Sprintf(field.Tag.Get(name))
+		}
 	}
 
-	url += "@" + hostname + ":"
+	fmt.Println("url 1 = ", url)
 
-	if portOk {
-		url += string(port)
-	} else {
-		url += "5672"
-	}
+	//defaultHostname := field.Tag.Get("default")
+	//fmt.Println("field", field.Tag.Get("default"), found)
+
 
 	return url
+	//return fmt.Sprintf("%s://%s@%s:%s",
+	//	protocol,
+	//	getUserAndPassword(username, password),
+	//	hostname,
+	//	string(port),
+	//)
 }
 
 func failOnError(err error, msg string) {
@@ -125,15 +159,14 @@ func Init() {
 	url := getRabbitUrl()
 	fmt.Println(url)
 	conn, err := amqp.Dial(url)
-	failOnError(err, "Failed to connect to RabbitMQ")
+	failOnError(err, "Failed to connect to rabbitMQ")
 	defer conn.Close()
 
 
-	channels := rabbitMQ["channels"].(map[string] interface{})
+	channels := config.Channels
 	forever := make(chan bool)
 
 	for key, _ := range channels {
-
 		channel, err := conn.Channel()
 		failOnError(err, "Failed to open a channel")
 		defer channel.Close()
@@ -141,7 +174,6 @@ func Init() {
 		fmt.Println(key)
 		settings := channels[key].(map[string] interface{})
 		consumeActivate := settings["consumeActivate"].(bool)
-
 
 		declareExchange(channel, settings)
 		declareQueue(channel, settings)
@@ -152,16 +184,15 @@ func Init() {
 	}
 	<-forever
 
-
 	//request := templates.Handshake()
 	//jsonData, err := json.Marshal(request)
 	//requestMsg := string(jsonData)
-
+	//
 	//fmt.Println("json = ", requestMsg)
-
-	//err = ch.Publish(
+	//
+	//err = channel.Publish(
 	//	"",      // exchange
-	//	q.Name,           // routing key
+	//	queue.Name,           // routing key
 	//	false,  // mandatory
 	//	false,  // immediate
 	//	amqp.Publishing{
