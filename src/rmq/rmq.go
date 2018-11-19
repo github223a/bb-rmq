@@ -12,9 +12,6 @@ import (
 	"strconv"
 )
 
-const GUEST =  "guest"
-const RABBIT_PORT = "5672"
-
 var config = readConfig()
 
 func readConfig() templates.Config {
@@ -29,138 +26,45 @@ func readConfig() templates.Config {
 
 	byteValue, _ := ioutil.ReadAll(configFile)
 	json.Unmarshal([]byte(byteValue), &config)
-	fmt.Println(config)
 	return config
 }
 
-func getUserAndPassword(username, password string) string {
-	//result = username + ":" + password
-	//result = GUEST + ":" + GUEST
-	return username + ":" + password
+func getConfigValue(reflectConnection reflect.Type, variable *string, name string ) {
+	if *variable == "" {
+		field, _ := reflectConnection.FieldByName(name)
+		value := field.Tag.Get("default")
+		*variable = value
+	}
+}
+func getConfigIntValue(reflectConnection reflect.Type, variable *int, name string ) {
+	if *variable == 0 {
+		field, _ := reflectConnection.FieldByName(name)
+		value := field.Tag.Get("default")
+		i64, _ := strconv.ParseInt(value, 10, 32)
+		*variable = int(i64)
+	}
 }
 
-//func getPort(port string) string {
-//	var result string
-//
-//	if portOk {
-//		result = string(port)
-//	} else {
-//		result = RABBIT_PORT
-//	}
-//	return result
-//}
-
 func getRabbitUrl() string {
-	url := "%s://%s:%s@%s:%d"
-	port := config.Connection.Port
-	protocol, hostname, username, password :=
+	var url string
+	template := "%s://%s:%s@%s:%d"
+	protocol, hostname, username, password, port :=
 		config.Connection.Protocol,
 		config.Connection.Hostname,
 		config.Connection.Username,
-		config.Connection.Password
+		config.Connection.Password,
+		config.Connection.Port
 
-	//var defaultInfo map[string] interface{}
-	//var keys = [5]string {
-	//	"Protocol",
-	//	"Hostname",
-	//	"Username",
-	//	"Password",
-	//	"Port",
-	//}
+	reflectConnection := reflect.TypeOf(config.Connection)
 
+	getConfigValue(reflectConnection, &protocol, "Protocol")
+	getConfigValue(reflectConnection, &hostname, "Hostname")
+	getConfigValue(reflectConnection, &username, "Username")
+	getConfigValue(reflectConnection, &password, "Password")
+	getConfigIntValue(reflectConnection, &port, "Port")
 
-	fmt.Println(protocol)
-	fmt.Println(hostname)
-	fmt.Println(username)
-	fmt.Println(password)
-	fmt.Println(port)
+	url = fmt.Sprintf(template, protocol, username, password, hostname, port)
 
-	if protocol == "" {
-		reflectConnection := reflect.TypeOf(config.Connection)
-		field, _ := reflectConnection.FieldByName("Protocol")
-		value := field.Tag.Get("default")
-		protocol = value
-	}
-	if hostname == "" {
-		reflectConnection := reflect.TypeOf(config.Connection)
-		field, _ := reflectConnection.FieldByName("Hostname")
-		value := field.Tag.Get("default")
-		hostname = value
-	}
-	if username == "" {
-		reflectConnection := reflect.TypeOf(config.Connection)
-		field, _ := reflectConnection.FieldByName("Username")
-		value := field.Tag.Get("default")
-		username = value
-	}
-	if password == "" {
-		reflectConnection := reflect.TypeOf(config.Connection)
-		field, _ := reflectConnection.FieldByName("Password")
-		value := field.Tag.Get("default")
-		password = value
-	}
-	fmt.Println("port check = ", port == 0)
-	if port == 0 {
-		reflectConnection := reflect.TypeOf(config.Connection)
-		field, _ := reflectConnection.FieldByName("Port")
-		value := field.Tag.Get("default")
-		fmt.Println("value = ", value)
-		i64, _ := strconv.ParseInt(value, 10, 32)
-		port = int(i64)
-	}
-	url = fmt.Sprintf(url, protocol, username, password, hostname, port)
-	//reflectConnection := reflect.TypeOf(config.Connection)
-
-	//for _, name := range keys {
-	//	fmt.Println("name = ", name)
-	//	field, _ := reflectConnection.FieldByName(name)
-	//	fmt.Println("field = ", field)
-	//	value := field.Tag.Get("default")
-	//	fmt.Println("value = ", value)
-	//
-	//	defaultInfo[name] = value
-	//}
-	//
-	//fmt.Println(defaultInfo)
-
-	//for _, name := range keys {
-	//	field := config.Connection[name]
-	//	fmt.Println(field)
-	//}
-	//reflectConnection := reflect.TypeOf(config.Connection)
-
-	//for i := 0; i < reflectConnection.NumField(); i++ {
-	//	field := reflectConnection.Field(i)
-	//	name := field.Tag.Get("json")
-	//	fmt.Println("value = ", name)
-	//	fmt.Println("field = ", field)
-	//
-	//}
-
-	//for _, name := range keys {
-	//	field, found := reflectConnection.FieldByName(name)
-	//
-	//	//r := reflect.ValueOf(reflectConnection)
-	//	//f := reflect.Indirect(r).FieldByName(name)
-	//
-	//	//fmt.Println("field = ", field)
-	//	//fmt.Println("found = ", found)
-	//	//fmt.Println("value = ", f)
-	//
-	//	//if found {
-	//	//	url = fmt.Sprintf(field.Tag.Get(name))
-	//	//}
-	//}
-
-	//defaultHostname := field.Tag.Get("default")
-	//fmt.Println("field", field.Tag.Get("default"), found)
-
-	//return fmt.Sprintf("%s://%s@%s:%s",
-	//	protocol,
-	//	getUserAndPassword(username, password),
-	//	hostname,
-	//	string(port),
-	//)
 	return url
 }
 
@@ -228,7 +132,7 @@ func declareCunsumer (ch *amqp.Channel, settings map[string] interface{}) {
 
 func Init() {
 	url := getRabbitUrl()
-	fmt.Println(url)
+	fmt.Println("url = ", url)
 	conn, err := amqp.Dial(url)
 	failOnError(err, "Failed to connect to rabbitMQ")
 	defer conn.Close()
