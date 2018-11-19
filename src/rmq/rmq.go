@@ -1,7 +1,6 @@
 package rmq
 
 import (
-	//"../templates"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -41,7 +40,7 @@ func getRabbitUrl() string{
 	hostname := connection["hostname"].(string)
 	username, userOk := connection["username"].(string)
 	password, passOk := connection["password"].(string)
-	port, portOk := connection["port"].(int)
+	port, portOk := connection["port2"].(string)
 
 	url = fmt.Sprintf("%s://", protocol)
 
@@ -105,7 +104,6 @@ func declareExchange (ch *amqp.Channel, settings map[string] interface{}) {
 func declareCunsumer (ch *amqp.Channel, settings map[string] interface{}, forever chan bool) {
 	queueName := settings["queueName"].(string)
 	queueOptions := settings["queueOptions"].(map[string] interface{})
-
 	msgs, err := ch.Consume(
 		queueName, // queue
 		"",     // consumer
@@ -116,21 +114,22 @@ func declareCunsumer (ch *amqp.Channel, settings map[string] interface{}, foreve
 		nil,    // args
 	)
 	failOnError(err, "Failed to register a consumer")
-	c1 := make(chan bool)
 
 	go func() {
 		for d := range msgs {
-			log.Printf("Received a message: %s", d.Body)
+			log.Printf("Received a message in %s: %s", queueName, d.Body)
 			dot_count := bytes.Count(d.Body, []byte("."))
 			t := time.Duration(dot_count)
 			time.Sleep(t * time.Second)
 			log.Printf("Done")
-			d.Ack(false)
-			//forever <- true
+			d.Ack(true)
+			//<-forever
 		}
 	}()
 	log.Printf(" [*] Waiting for messages from %s. To exit press CTRL+C", queueName)
-	<- c1
+	//<-forever
+	//forever <- true
+
 }
 
 func Init() {
@@ -161,8 +160,10 @@ func Init() {
 		if consumeActivate {
 			go declareCunsumer(channel, settings, forever)
 		}
+		<-forever
+		//m := <-forever
+		//fmt.Println("m = ", m)
 	}
-
 
 	//request := templates.Handshake()
 	//jsonData, err := json.Marshal(request)
