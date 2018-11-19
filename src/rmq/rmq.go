@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"reflect"
+	"strconv"
 )
 
 const GUEST =  "guest"
@@ -49,40 +50,78 @@ func getUserAndPassword(username, password string) string {
 //	return result
 //}
 
-
-
 func getRabbitUrl() string {
-	var url string
-
-	url = "%s://%s:%s@%s:%s"
-
-	protocol, hostname, username, password, port :=
+	url := "%s://%s:%s@%s:%s"
+	port := config.Connection.Port
+	protocol, hostname, username, password :=
 		config.Connection.Protocol,
 		config.Connection.Hostname,
 		config.Connection.Username,
-		config.Connection.Password,
-		config.Connection.Port
+		config.Connection.Password
+
+	//var defaultInfo map[string] interface{}
+	//var keys = [5]string {
+	//	"Protocol",
+	//	"Hostname",
+	//	"Username",
+	//	"Password",
+	//	"Port",
+	//}
+
+
 	fmt.Println(protocol)
 	fmt.Println(hostname)
 	fmt.Println(username)
 	fmt.Println(password)
 	fmt.Println(port)
 
+	if protocol == "" {
+		reflectConnection := reflect.TypeOf(config.Connection)
+		field, _ := reflectConnection.FieldByName("Protocol")
+		value := field.Tag.Get("default")
+		protocol = value
+	}
+	if hostname == "" {
+		reflectConnection := reflect.TypeOf(config.Connection)
+		field, _ := reflectConnection.FieldByName("Hostname")
+		value := field.Tag.Get("default")
+		hostname = value
+	}
 	if username == "" {
 		reflectConnection := reflect.TypeOf(config.Connection)
 		field, _ := reflectConnection.FieldByName("Username")
 		value := field.Tag.Get("default")
 		username = value
-		fmt.Println("username 2 = ", username)
 	}
+	if password == "" {
+		reflectConnection := reflect.TypeOf(config.Connection)
+		field, _ := reflectConnection.FieldByName("Password")
+		value := field.Tag.Get("default")
+		password = value
+	}
+	fmt.Println("port check = ", port == 0)
+	if port == 0 {
+		reflectConnection := reflect.TypeOf(config.Connection)
+		field, _ := reflectConnection.FieldByName("Port")
+		value := field.Tag.Get("default")
+		fmt.Println("value = ", value)
+		i64, _ := strconv.ParseInt(value, 10, 32)
+		port = int(i64)
+	}
+	url = fmt.Sprintf(url, protocol, username, password, hostname, port)
+	//reflectConnection := reflect.TypeOf(config.Connection)
 
-	//var keys = [5]string {
-	//	"protocol",
-	//	"hostname",
-	//	"username",
-	//	"password",
-	//	"port",
+	//for _, name := range keys {
+	//	fmt.Println("name = ", name)
+	//	field, _ := reflectConnection.FieldByName(name)
+	//	fmt.Println("field = ", field)
+	//	value := field.Tag.Get("default")
+	//	fmt.Println("value = ", value)
+	//
+	//	defaultInfo[name] = value
 	//}
+	//
+	//fmt.Println(defaultInfo)
 
 	//for _, name := range keys {
 	//	field := config.Connection[name]
