@@ -23,7 +23,7 @@ func requestProcessing(w http.ResponseWriter, req *http.Request) {
 	decoder := json.NewDecoder(req.Body)
 
 	var request Request
-	err := decoder.Decode(&data)
+	err := decoder.Decode(&request)
 	if err != nil {
 		panic(err)
 	}
