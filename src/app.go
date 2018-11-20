@@ -23,8 +23,11 @@ func checkInternalMethod(parsedMessage map[string]interface{}) {
 func checkToken(parsedMessage map[string]interface{}) {
 }
 func runMethod(parsedMessage map[string]interface{}) {
-	name := parsedMessage["method"]
-	fmt.Println(name)
+	name := parsedMessage["method"].(string)
+
+	if methods.List[name] == nil {
+		fmt.Println("no method")
+		return // need send error to client
+	}
 	methods.List[name]()
-	//methods[parsedMessage["method"]]
 }
