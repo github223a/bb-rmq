@@ -22,14 +22,14 @@ type Request struct {
 func requestProcessing(w http.ResponseWriter, req *http.Request) {
 	decoder := json.NewDecoder(req.Body)
 
-	var data Request
+	var request Request
 	err := decoder.Decode(&data)
 	if err != nil {
 		panic(err)
 	}
 
-	owner := data.Id
-	fmt.Println(owner)
+	id := request.Id
+	fmt.Println(id)
 }
 
 func HttpServerInit() {
