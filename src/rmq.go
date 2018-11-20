@@ -110,11 +110,11 @@ func bindQueue(ch *amqp.Channel, settings map[string] interface{}) {
 	FailOnError(err, "Failed to bind a queue")
 }
 
-func declareCunsumer (ch *amqp.Channel, settings map[string] interface{}) {
+func declareCunsumer (channel *amqp.Channel, settings map[string] interface{}) {
 	queueName := settings["queueName"].(string)
 	queueOptions := settings["queueOptions"].(map[string] interface{})
 
-	msgs, err := ch.Consume(
+	msgs, err := channel.Consume(
 		queueName, // queue
 		"",     // consumer
 		getQueueOption(queueOptions, "noAck"),   // auto-ack
@@ -128,7 +128,7 @@ func declareCunsumer (ch *amqp.Channel, settings map[string] interface{}) {
 	go func() {
 		for message := range msgs {
 			log.Printf("Received a message from %s: %s", queueName, message.Body)
-			rmqProcessing(message.Body)
+			rmqProcessing(channel, message.Body)
 		}
 	}()
 	if queueName == "" {
@@ -137,12 +137,12 @@ func declareCunsumer (ch *amqp.Channel, settings map[string] interface{}) {
 	log.Printf("%s Waiting for messages from %s channel. To exit press CTRL+C", constants.HEADER_RMQ_MESSAGE, queueName)
 }
 
-func rmqProcessing(message []byte) {
+func rmqProcessing(channel *amqp.Channel, message []byte) {
 	var parsedMessage map[string] interface{}
 	unMarshalMessage(message, &parsedMessage)
 
 	if parsedMessage["error"] == nil && parsedMessage["result"] == nil {
-		processingInternalMethod(parsedMessage)
+		processingInternalMethod(channel, parsedMessage)
 		return
 	}
 	//if parsedMessage["result"] != nil {

@@ -1,5 +1,10 @@
 package internal_methods
 
-func infrastructure() {
+import (
+	"fmt"
+	"github.com/streadway/amqp"
+)
 
+func infrastructure(channel *amqp.Channel) {
+	fmt.Println("lalala")
 }

@@ -3,9 +3,18 @@ package internal_methods
 import (
 	"../constants"
 	"../templates"
+	"encoding/json"
 	"fmt"
 	"github.com/satori/go.uuid"
+	"github.com/streadway/amqp"
+	"log"
 )
+
+func FailOnError(err error, msg string) {
+	if err != nil {
+		log.Fatalf("%s: %s", msg, err)
+	}
+}
 
 func generateId() uuid.UUID {
 	id, err := uuid.NewV4()
@@ -20,20 +29,35 @@ func generateId() uuid.UUID {
 type Empty struct {}
 
 var handshakeParams = map[string] interface {} {
-	"namespace": constants.NAMESPACE_INTERNAL,
-	"method": Empty{},
+	"namespace": constants.CONFIG.Namespace,
+	"methods": Empty{},
 }
 
 var handshakeRequest = templates.Request {
 	Id: generateId(),
-	Namespace: constants.CONFIG.Namespace,
+	Namespace: constants.NAMESPACE_INTERNAL,
 	Method: "handshake",
-	Domain: "",
-	Locale: "",
+	Domain: nil,
+	Locale: nil,
 	Params: handshakeParams,
 	Source: constants.CONFIG.Namespace,
 }
 
-func handshake() {
+
+
+func handshake(channel *amqp.Channel) {
+	var handshakeMsgByte, marshalErr = json.Marshal(handshakeRequest)
+	FailOnError(marshalErr, "Failed on marshal handshake message.")
+
+	err := channel.Publish(
+		"",     // exchange
+		constants.NAMESPACE_INTERNAL, // routing key
+		false,  // mandatory
+		false,  // immediate
+		amqp.Publishing{
+			ContentType: "application/json",
+			Body:        []byte(handshakeMsgByte),
+		})
 	fmt.Println(handshakeRequest)
+	FailOnError(err, "Failed to publish a message.")
 }

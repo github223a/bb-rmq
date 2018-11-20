@@ -1,6 +1,8 @@
 package internal_methods
 
-var List = map[string] func() {
+import "github.com/streadway/amqp"
+
+var List = map[string] func(*amqp.Channel) {
 	"friendship": handshake,
 	"infrastructure": infrastructure,
 }

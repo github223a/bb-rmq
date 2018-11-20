@@ -20,6 +20,7 @@ func getMessageHeader(t string) string {
 		return constants.HEADER_UNKNOWN
 	}
 }
+
 func FailOnError(err error, msg string) {
 	if err != nil {
 		log.Fatalf("%s: %s", msg, err)
