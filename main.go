@@ -5,5 +5,6 @@ import(
 )
 
 func main() {
+	go src.HttpServerInit()
 	src.RmqInit()
 }

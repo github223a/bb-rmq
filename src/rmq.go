@@ -12,7 +12,7 @@ import (
 	"strconv"
 )
 
-var config = readConfig()
+var Config = readConfig()
 
 func FailOnError(err error, msg string) {
 	if err != nil {
@@ -68,13 +68,13 @@ func getQueueOption(queueOptions map[string] interface{}, name string) bool {
 func getRabbitUrl() string {
 	template := "%s://%s:%s@%s:%d"
 	protocol, hostname, username, password, port :=
-		config.RabbitMQ.Connection.Protocol,
-		config.RabbitMQ.Connection.Hostname,
-		config.RabbitMQ.Connection.Username,
-		config.RabbitMQ.Connection.Password,
-		config.RabbitMQ.Connection.Port
+		Config.RabbitMQ.Connection.Protocol,
+		Config.RabbitMQ.Connection.Hostname,
+		Config.RabbitMQ.Connection.Username,
+		Config.RabbitMQ.Connection.Password,
+		Config.RabbitMQ.Connection.Port
 
-	reflectConnection := reflect.TypeOf(config.RabbitMQ.Connection)
+	reflectConnection := reflect.TypeOf(Config.RabbitMQ.Connection)
 
 	getConfigValue(reflectConnection, &protocol, "Protocol")
 	getConfigValue(reflectConnection, &hostname, "Hostname")
@@ -162,7 +162,7 @@ func RmqInit() {
 	FailOnError(err, "Failed to connect to rabbitMQ")
 	defer conn.Close()
 
-	channels := config.RabbitMQ.Channels
+	channels := Config.RabbitMQ.Channels
 	forever := make(chan bool)
 
 	for key, _ := range channels {

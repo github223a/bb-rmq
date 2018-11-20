@@ -26,11 +26,13 @@ type Connection struct {
 }
 
 type Ws struct {
+	Host string `json:"host"`
 	Port int `json:"port"`
 	Path string `json:"path"`
 }
 
 type Rest struct {
+	Host string `json:"host"`
 	Port int `json:"port"`
 	Path string `json:"path"`
 }
