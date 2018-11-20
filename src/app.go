@@ -1,29 +1,30 @@
 package src
-//
-//import (
-//	"./templates"
-//	"encoding/json"
-//	"fmt"
-//	"github.com/streadway/amqp"
-//	"log"
-//)
-//
-//func SendHandhake() {
-//	request := templates.Handshake()
-//	jsonData, err := json.Marshal(request)
-//
-//	requestMsg := string(jsonData)
-//
-//	fmt.Println("json = ", requestMsg)
-//	err = channel.Publish(
-//		"",      // exchange
-//		request.Namespace,           // routing key
-//		false,  // mandatory
-//		false,  // immediate
-//		amqp.Publishing{
-//			ContentType: "text/plain",
-//			Body:        []byte(requestMsg),
-//		})
-//	log.Printf(" [x] Sent %s", requestMsg)
-//	FailOnError(err, "Failed to publish a message")
-//}
+
+import (
+	methods "./internal-methods"
+	"fmt"
+)
+
+func processingInternalMethod(parsedMessage map[string]interface{}) {
+	validateRequest(parsedMessage)
+	checkNamespace(parsedMessage)
+	checkInternalMethod(parsedMessage)
+	checkToken(parsedMessage)
+
+	runMethod(parsedMessage)
+}
+
+func validateRequest(parsedMessage map[string]interface{}) {
+}
+func checkNamespace(parsedMessage map[string]interface{}) {
+}
+func checkInternalMethod(parsedMessage map[string]interface{}) {
+}
+func checkToken(parsedMessage map[string]interface{}) {
+}
+func runMethod(parsedMessage map[string]interface{}) {
+	name := parsedMessage["method"]
+	fmt.Println(name)
+	methods.List[name]()
+	//methods[parsedMessage["method"]]
+}

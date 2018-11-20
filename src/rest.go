@@ -1,43 +1,38 @@
 package src
 
 import (
+	"./constants"
+	"./templates"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 )
-const headerMessage = "HttpServer: "
 
 func getUrl() string {
 	template := "http://%s:%d%s"
-	host, path, port := Config.Location.Rest.Host, Config.Location.Rest.Path, Config.Location.Rest.Port
+	host, path, port := constants.CONFIG.Location.Rest.Host, constants.CONFIG.Location.Rest.Path, constants.CONFIG.Location.Rest.Port
 
 	return fmt.Sprintf(template, host, port, path)
 }
 
-type Request struct {
-	Id   string  `json:"id"`
+func parseRequest(req *http.Request, variable *templates.Request) {
+	decoder := json.NewDecoder(req.Body)
+	err := decoder.Decode(&*variable)
+	FailOnError(err, "Error on parse request.")
 }
 
-func requestProcessing(w http.ResponseWriter, req *http.Request) {
-	decoder := json.NewDecoder(req.Body)
-
-	var request Request
-	err := decoder.Decode(&request)
-	if err != nil {
-		panic(err)
-	}
-
-	id := request.Id
-	fmt.Println(id)
+func httpRequestProcessing(writer http.ResponseWriter, req *http.Request) {
+	var request templates.Request
+	parseRequest(req, &request)
+	setSource(&request, "http")
+	logRequest(request, "http")
 }
 
 func HttpServerInit() {
-	http.HandleFunc(Config.Location.Rest.Path, requestProcessing) // set router
-	log.Printf(headerMessage + "Server is starting by url %s", getUrl())
+	http.HandleFunc(constants.CONFIG.Location.Rest.Path, httpRequestProcessing) // set router
+	log.Printf(constants.HEADER_HTTP_MESSAGE + "Server is starting by url %s", getUrl())
 
-	err := http.ListenAndServe(fmt.Sprintf(":%d", Config.Location.Rest.Port), nil) // set listen port
-	if err != nil {
-		log.Fatal(headerMessage, err)
-	}
+	err := http.ListenAndServe(fmt.Sprintf(":%d", constants.CONFIG.Location.Rest.Port), nil) // set listen port
+	FailOnError(err, "Error on start http server.")
 }

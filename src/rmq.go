@@ -1,36 +1,13 @@
 package src
 
 import (
-	"./templates"
-	"encoding/json"
+	"./constants"
 	"fmt"
 	"github.com/streadway/amqp"
-	"io/ioutil"
 	"log"
-	"os"
 	"reflect"
 	"strconv"
 )
-
-var Config = readConfig()
-
-func FailOnError(err error, msg string) {
-	if err != nil {
-		log.Fatalf("%s: %s", msg, err)
-	}
-}
-
-func readConfig() templates.Config {
-	var config templates.Config
-
-	configFile, err := os.Open("./src/config.development.json")
-	FailOnError(err, "Error on open config file.")
-	defer configFile.Close()
-
-	byteValue, _ := ioutil.ReadAll(configFile)
-	json.Unmarshal([]byte(byteValue), &config)
-	return config
-}
 
 func getConfigValue(reflectConnection reflect.Type, variable *string, name string ) {
 	if *variable == "" {
@@ -68,13 +45,13 @@ func getQueueOption(queueOptions map[string] interface{}, name string) bool {
 func getRabbitUrl() string {
 	template := "%s://%s:%s@%s:%d"
 	protocol, hostname, username, password, port :=
-		Config.RabbitMQ.Connection.Protocol,
-		Config.RabbitMQ.Connection.Hostname,
-		Config.RabbitMQ.Connection.Username,
-		Config.RabbitMQ.Connection.Password,
-		Config.RabbitMQ.Connection.Port
+		constants.CONFIG.RabbitMQ.Connection.Protocol,
+		constants.CONFIG.RabbitMQ.Connection.Hostname,
+		constants.CONFIG.RabbitMQ.Connection.Username,
+		constants.CONFIG.RabbitMQ.Connection.Password,
+		constants.CONFIG.RabbitMQ.Connection.Port
 
-	reflectConnection := reflect.TypeOf(Config.RabbitMQ.Connection)
+	reflectConnection := reflect.TypeOf(constants.CONFIG.RabbitMQ.Connection)
 
 	getConfigValue(reflectConnection, &protocol, "Protocol")
 	getConfigValue(reflectConnection, &hostname, "Hostname")
@@ -149,11 +126,30 @@ func declareCunsumer (ch *amqp.Channel, settings map[string] interface{}) {
 	FailOnError(err, "Failed to register a consumer")
 
 	go func() {
-		for d := range msgs {
-			log.Printf("Received a message from %s: %s", queueName, d.Body)
+		for message := range msgs {
+			log.Printf("Received a message from %s: %s", queueName, message.Body)
+			rmqProcessing(message.Body)
 		}
 	}()
-	log.Printf(" [*] Waiting for messages from %s. To exit press CTRL+C", queueName)
+	if queueName == "" {
+		queueName = settings["bindingKey"].(string)
+	}
+	log.Printf("%s Waiting for messages from %s channel. To exit press CTRL+C", constants.HEADER_RMQ_MESSAGE, queueName)
+}
+
+func rmqProcessing(message []byte) {
+	var parsedMessage map[string] interface{}
+	unMarshalMessage(message, &parsedMessage)
+
+	if parsedMessage["error"] == nil && parsedMessage["result"] == nil {
+		processingInternalMethod(parsedMessage)
+		return
+	}
+	//if parsedMessage["result"] != nil {
+	//	applyAfterMiddlewares(parsedMessage)
+	//}
+	//
+	//sendResponseToClient(parsedMessage)
 }
 
 func RmqInit() {
@@ -162,7 +158,7 @@ func RmqInit() {
 	FailOnError(err, "Failed to connect to rabbitMQ")
 	defer conn.Close()
 
-	channels := Config.RabbitMQ.Channels
+	channels := constants.CONFIG.RabbitMQ.Channels
 	forever := make(chan bool)
 
 	for key, _ := range channels {
