@@ -61,17 +61,17 @@ func runFriendship(request templates.Request) {
 			Body:        []byte(handshakeMsgByte),
 		})
 	FailOnError(err, "Failed to publish a message.")
-	log.Printf("%s Sent message to [*%s*]. Message %s", constants.HEADER_RMQ_MESSAGE, constants.NAMESPACE_INTERNAL, handshakeMsgByte)
+	log.Printf("%s Sent message to [* %s *]. Message %s", constants.HEADER_RMQ_MESSAGE, constants.NAMESPACE_INTERNAL, handshakeMsgByte)
 }
 
-var friendShipSettings = entities.MethodSettings{
+var friendShipSettings = MethodSettings {
 	IsInternal: true,
 	Auth: false,
-	Cache: nil,
-	Middlewares: entities.Middlewares {
+	Cache: 0,
+	Middlewares: Middlewares {
 		Before: []string{},
 		After: []string{},
 	},
 }
 
-var Friendship = entities.NewMethodEntity(runFriendship, friendShipSettings)
+var Friendship = NewMethodEntity(runFriendship, friendShipSettings)

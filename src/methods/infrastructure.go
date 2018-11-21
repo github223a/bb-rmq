@@ -2,24 +2,23 @@ package methods
 
 import (
 	"../constants"
-	"../entities"
 	"../templates"
-	"fmt"
+	"log"
 )
 
 func runInfrastructure(request templates.Request) {
 	constants.INFRASTRUCTURE = request.Params
-	fmt.Println("infrastr ==== ", constants.INFRASTRUCTURE)
+	log.Printf("%sInfrastructure updated.", constants.HEADER_RMQ_MESSAGE)
 }
 
-var infrastructureSettings = entities.MethodSettings{
+var infrastructureSettings = MethodSettings{
 	IsInternal: true,
 	Auth: false,
-	Cache: nil,
-	Middlewares: entities.Middlewares {
+	Cache: 0,
+	Middlewares: Middlewares {
 		Before: []string{},
 		After: []string{},
 	},
 }
 
-var Infrastructure = entities.NewMethodEntity(runInfrastructure, infrastructureSettings)
+var Infrastructure = NewMethodEntity(runInfrastructure, infrastructureSettings)

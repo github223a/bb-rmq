@@ -138,7 +138,7 @@ func declareCunsumer (channel *amqp.Channel, settings map[string] interface{}) {
 
 	go func() {
 		for message := range msgs {
-			log.Printf("Received a message from %s: %s", queueName, message.Body)
+			log.Printf("Received a message from [* %s *]. Message %s", queueName, message.Body)
 			rmqProcessing(message.Body)
 		}
 	}()
@@ -152,24 +152,18 @@ func rmqProcessing(message []byte) {
 	var parsedMessage map[string] interface{}
 	UnmarshalByteToMap(message, &parsedMessage)
 
-	if parsedMessage["error"] == nil && parsedMessage["result"] == nil {
-		var request templates.Request
-
-		err := json.Unmarshal(message, &request)
-		FailOnError(err, "Error on unmarshal byte message to struct.")
-
-		processingInternalMethod(request)
-		return
+	switch true {
+		case parsedMessage["error"] == nil && parsedMessage["result"] == nil:
+			var request templates.Request
+			err := json.Unmarshal(message, &request)
+			FailOnError(err, "Error on unmarshal byte message to struct.")
+			processingInternalMethod(request)
+			break
+		case parsedMessage["result"] != nil:
+			applyAfterMiddlewares(parsedMessage)
+		default:
+			sendResponseToClient(parsedMessage, false)
 	}
-	if parsedMessage["result"] != nil {
-		applyAfterMiddlewares(parsedMessage)
-	}
-
-	sendResponseToClient(parsedMessage, false)
-}
-
-func applyAfterMiddlewares(parsedMessage map[string] interface{}) {
-
 }
 
 func RmqInit() {

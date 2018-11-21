@@ -8,9 +8,10 @@ import (
 	"os"
 )
 
-func FailOnError(err error, msg string) {
+func FailOnErrorReadConfig(err error, msg string) {
 	if err != nil {
-		log.Fatalf("%s: %s", msg, err)
+		log.Panicf("%s", msg)
+		panic(err)
 	}
 }
 
@@ -18,7 +19,7 @@ func readConfig() templates.Config {
 	var config templates.Config
 
 	configFile, err := os.Open("./config.development.json")
-	FailOnError(err, "Error on open config file.")
+	FailOnErrorReadConfig(err, "Error on open config file.")
 	defer configFile.Close()
 
 	byteValue, _ := ioutil.ReadAll(configFile)

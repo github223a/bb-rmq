@@ -26,6 +26,11 @@ func httpRequestProcessing(writer http.ResponseWriter, req *http.Request) {
 	var request templates.Request
 	parseRequest(req, &request)
 	setSource(&request, "http")
+
+	validateRequest(request)
+	checkNamespace(request)
+	checkExternalMethod(request)
+	processingExternalMethod(request)
 	logRequest(request, "http")
 }
 
