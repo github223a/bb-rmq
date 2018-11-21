@@ -3,6 +3,7 @@ package src
 import (
 	"./constants"
 	"./entities"
+	"./methods"
 	"./templates"
 	"encoding/json"
 	"fmt"
@@ -157,7 +158,6 @@ func rmqProcessing(message []byte) {
 		err := json.Unmarshal(message, &request)
 		FailOnError(err, "Error on unmarshal byte message to struct.")
 
-		fmt.Println("res = ", request)
 		processingInternalMethod(request)
 		return
 	}
@@ -179,7 +179,6 @@ func RmqInit() {
 	defer conn.Close()
 
 	entities.Rabbit = entities.NewRabbitEntity(conn)
-
 	channels := constants.CONFIG.RabbitMQ.Channels
 	forever := make(chan bool)
 
@@ -205,5 +204,6 @@ func RmqInit() {
 			declareCunsumer(channel, settings)
 		}
 	}
+	methods.List["friendship"].Run(methods.HandshakeRequest)
 	<-forever
 }

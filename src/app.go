@@ -3,7 +3,7 @@ package src
 import (
 	"./constants"
 	"./entities"
-	methods "./internal-methods"
+	methods "./methods"
 	"./templates"
 	"fmt"
 	"log"
@@ -34,7 +34,7 @@ func runMethod(request templates.Request) {
 		fmt.Println("no method")
 		return // need send error to client
 	}
-	method(request)
+	method.Run(request)
 }
 
 func cacheResponse(message map[string] interface{}) {
@@ -66,21 +66,19 @@ func sendResponseToClient(parsedMessage map[string]interface{}, fromCache bool) 
 		cacheResponse(parsedMessage)
 	}
 
-	if deliveryKey != nil {
+	switch true {
+	case deliveryKey != nil:
 		massSending(parsedMessage)
 		return
-	}
-
-	if source == "http" {
+	case source == "http":
 		sendByHttp(parsedMessage)
 		return
-	}
-
-	if source == "ws" {
+	case source == "ws":
 		sendByWs(parsedMessage)
 		return
+	default:
+		log.Printf("%s Unknown source, can't send response %s", constants.HEADER_RMQ_MESSAGE, parsedMessage)
 	}
-	log.Printf("%s Unknown source, can't send response %s", constants.HEADER_RMQ_MESSAGE, parsedMessage)
 }
 
 func sendByHttp(message map[string]interface{}) {

@@ -1,4 +1,4 @@
-package internal_methods
+package methods
 
 import (
 	"../constants"
@@ -27,14 +27,17 @@ func generateId() uuid.UUID {
 	return id
 }
 
-type Empty struct {}
+type HandshakeMethods struct {}
 
 var handshakeParams = map[string] interface {} {
 	"namespace": constants.CONFIG.Namespace,
-	"methods": Empty{},
+	"methods": map[string] interface{} {
+		"friendship": friendShipSettings,
+		"infrastructure": infrastructureSettings,
+	},
 }
 
-var handshakeRequest = templates.Request {
+var HandshakeRequest = templates.Request {
 	Id: generateId(),
 	Namespace: constants.NAMESPACE_INTERNAL,
 	Method: "handshake",
@@ -44,8 +47,8 @@ var handshakeRequest = templates.Request {
 	Source: constants.CONFIG.Namespace,
 }
 
-func handshake(request templates.Request) {
-	var handshakeMsgByte, marshalErr = json.Marshal(handshakeRequest)
+func runFriendship(request templates.Request) {
+	handshakeMsgByte, marshalErr := json.Marshal(HandshakeRequest)
 	FailOnError(marshalErr, "Failed on marshal handshake message.")
 
 	err := entities.Rabbit.Channels[request.Namespace].Publish(
@@ -58,4 +61,17 @@ func handshake(request templates.Request) {
 			Body:        []byte(handshakeMsgByte),
 		})
 	FailOnError(err, "Failed to publish a message.")
+	log.Printf("%s Sent message to [*%s*]. Message %s", constants.HEADER_RMQ_MESSAGE, constants.NAMESPACE_INTERNAL, handshakeMsgByte)
 }
+
+var friendShipSettings = entities.MethodSettings{
+	IsInternal: true,
+	Auth: false,
+	Cache: nil,
+	Middlewares: entities.Middlewares {
+		Before: []string{},
+		After: []string{},
+	},
+}
+
+var Friendship = entities.NewMethodEntity(runFriendship, friendShipSettings)
