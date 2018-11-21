@@ -27,9 +27,11 @@ func readConfig() templates.Config {
 }
 
 var CONFIG = readConfig()
+var INFRASTRUCTURE = map[string] interface{}{}
 
 const NAMESPACE_INTERNAL = "internal"
 const HEADER_RMQ_MESSAGE = "[*] RabbitMQ: "
 const HEADER_HTTP_MESSAGE = "[*] HttpServer: "
 const HEADER_WS_MESSAGE = "[*] WsServer: "
+const HEADER_REDIS_MESSAGE = "[*] Redis: "
 const HEADER_UNKNOWN = "[*] Unknown: "

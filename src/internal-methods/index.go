@@ -1,8 +1,8 @@
 package internal_methods
 
-import "github.com/streadway/amqp"
+import "../templates"
 
-var List = map[string] func(*amqp.Channel) {
+var List = map[string] func(templates.Request) {
 	"friendship": handshake,
 	"infrastructure": infrastructure,
 }

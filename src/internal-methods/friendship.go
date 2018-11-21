@@ -2,6 +2,7 @@ package internal_methods
 
 import (
 	"../constants"
+	"../entities"
 	"../templates"
 	"encoding/json"
 	"fmt"
@@ -43,21 +44,18 @@ var handshakeRequest = templates.Request {
 	Source: constants.CONFIG.Namespace,
 }
 
-
-
-func handshake(channel *amqp.Channel) {
+func handshake(request templates.Request) {
 	var handshakeMsgByte, marshalErr = json.Marshal(handshakeRequest)
 	FailOnError(marshalErr, "Failed on marshal handshake message.")
 
-	err := channel.Publish(
+	err := entities.Rabbit.Channels[request.Namespace].Publish(
 		"",     // exchange
 		constants.NAMESPACE_INTERNAL, // routing key
 		false,  // mandatory
 		false,  // immediate
-		amqp.Publishing{
+		amqp.Publishing {
 			ContentType: "application/json",
 			Body:        []byte(handshakeMsgByte),
 		})
-	fmt.Println(handshakeRequest)
 	FailOnError(err, "Failed to publish a message.")
 }

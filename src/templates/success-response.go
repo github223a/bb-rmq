@@ -10,4 +10,6 @@ type SuccessResponse struct {
 	Locale string `json:"locale"`
 	Result map[string] interface{} `json:"result"`
 	Source string `json:"source"`
+	CacheKey string `json:"cacheKey"`
+	Token string `json:"token"`
 }

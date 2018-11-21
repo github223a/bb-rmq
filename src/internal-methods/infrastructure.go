@@ -1,10 +1,16 @@
 package internal_methods
 
 import (
+	"../constants"
+	"../templates"
 	"fmt"
-	"github.com/streadway/amqp"
+	"github.com/mitchellh/mapstructure"
 )
 
-func infrastructure(channel *amqp.Channel) {
-	fmt.Println("lalala")
+func infrastructure(request templates.Request) {
+	err := mapstructure.Decode(request.Params, &constants.INFRASTRUCTURE)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("infrastr ==== ", constants.INFRASTRUCTURE)
 }

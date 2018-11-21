@@ -2,12 +2,22 @@ package src
 
 import (
 	"./constants"
+	"./entities"
+	"./templates"
+	"encoding/json"
 	"fmt"
 	"github.com/streadway/amqp"
 	"log"
 	"reflect"
 	"strconv"
 )
+
+//func getChannelName(setttings map[string] interface {}) string {
+//	if setttings["queueName"] == "" {
+//		return setttings["bindingKey"].(string)
+//	}
+//	return setttings["queueName"].(string)
+//}
 
 func getConfigValue(reflectConnection reflect.Type, variable *string, name string ) {
 	if *variable == "" {
@@ -128,7 +138,7 @@ func declareCunsumer (channel *amqp.Channel, settings map[string] interface{}) {
 	go func() {
 		for message := range msgs {
 			log.Printf("Received a message from %s: %s", queueName, message.Body)
-			rmqProcessing(channel, message.Body)
+			rmqProcessing(message.Body)
 		}
 	}()
 	if queueName == "" {
@@ -137,19 +147,29 @@ func declareCunsumer (channel *amqp.Channel, settings map[string] interface{}) {
 	log.Printf("%s Waiting for messages from %s channel. To exit press CTRL+C", constants.HEADER_RMQ_MESSAGE, queueName)
 }
 
-func rmqProcessing(channel *amqp.Channel, message []byte) {
+func rmqProcessing(message []byte) {
 	var parsedMessage map[string] interface{}
-	unMarshalMessage(message, &parsedMessage)
+	UnmarshalByteToMap(message, &parsedMessage)
 
 	if parsedMessage["error"] == nil && parsedMessage["result"] == nil {
-		processingInternalMethod(channel, parsedMessage)
+		var request templates.Request
+
+		err := json.Unmarshal(message, &request)
+		FailOnError(err, "Error on unmarshal byte message to struct.")
+
+		fmt.Println("res = ", request)
+		processingInternalMethod(request)
 		return
 	}
-	//if parsedMessage["result"] != nil {
-	//	applyAfterMiddlewares(parsedMessage)
-	//}
-	//
-	//sendResponseToClient(parsedMessage)
+	if parsedMessage["result"] != nil {
+		applyAfterMiddlewares(parsedMessage)
+	}
+
+	sendResponseToClient(parsedMessage, false)
+}
+
+func applyAfterMiddlewares(parsedMessage map[string] interface{}) {
+
 }
 
 func RmqInit() {
@@ -158,15 +178,19 @@ func RmqInit() {
 	FailOnError(err, "Failed to connect to rabbitMQ")
 	defer conn.Close()
 
+	entities.Rabbit = entities.NewRabbitEntity(conn)
+
 	channels := constants.CONFIG.RabbitMQ.Channels
 	forever := make(chan bool)
 
-	for key, _ := range channels {
+	for channelName, _ := range channels {
 		channel, err := conn.Channel()
 		FailOnError(err, "Failed to open a channel")
-		defer channel.Close()
+		//defer channel.Close()
 
-		settings := channels[key].(map[string] interface{})
+		entities.Rabbit.AddChannel(channelName, channel)
+
+		settings := channels[channelName].(map[string] interface{})
 		consumeActivate := settings["consumeActivate"].(bool)
 		bindingKey := settings["bindingKey"]
 

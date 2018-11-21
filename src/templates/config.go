@@ -44,6 +44,6 @@ type Location struct {
 
 type Redis struct {
 	Host string `json:"host"`
-	Port string `json:"port"`
-	Prefix string `json:"prefix"`
+	Port int `json:"port"`
+	Password string `json:"prefix"`
 }

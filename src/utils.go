@@ -31,9 +31,9 @@ func logRequest(request templates.Request, t string) {
 	fmt.Printf("%s Get request %+v\n", getMessageHeader(t), request)
 }
 
-func unMarshalMessage(data []byte, variable *map[string] interface{}) {
+func UnmarshalByteToMap(data []byte, variable *map[string] interface{}) {
 	if err := json.Unmarshal(data, &*variable); err != nil {
-		FailOnError(err, "Error on parse message")
+		FailOnError(err, "Error on unmarshal byte message")
 	}
 }
 
