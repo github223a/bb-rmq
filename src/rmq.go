@@ -4,7 +4,7 @@ import (
 	"./constants"
 	"./entities"
 	"./methods"
-	"./templates"
+	"./structures"
 	"encoding/json"
 	"fmt"
 	"github.com/streadway/amqp"
@@ -12,13 +12,6 @@ import (
 	"reflect"
 	"strconv"
 )
-
-//func getChannelName(setttings map[string] interface {}) string {
-//	if setttings["queueName"] == "" {
-//		return setttings["bindingKey"].(string)
-//	}
-//	return setttings["queueName"].(string)
-//}
 
 func getConfigValue(reflectConnection reflect.Type, variable *string, name string ) {
 	if *variable == "" {
@@ -138,7 +131,7 @@ func declareCunsumer (channel *amqp.Channel, settings map[string] interface{}) {
 
 	go func() {
 		for message := range msgs {
-			log.Printf("Received a message from [* %s *]. Message %s", queueName, message.Body)
+			log.Printf("%s Received a message from [* %s *]: Message %s", constants.HEADER_RMQ_MESSAGE, queueName, message.Body)
 			rmqProcessing(message.Body)
 		}
 	}()
@@ -154,7 +147,7 @@ func rmqProcessing(message []byte) {
 
 	switch true {
 		case parsedMessage["error"] == nil && parsedMessage["result"] == nil:
-			var request templates.Request
+			var request structures.Request
 			err := json.Unmarshal(message, &request)
 			FailOnError(err, "Error on unmarshal byte message to struct.")
 			processingInternalMethod(request)
@@ -198,6 +191,6 @@ func RmqInit() {
 			declareCunsumer(channel, settings)
 		}
 	}
-	methods.List["friendship"].Run(methods.HandshakeRequest)
+	methods.List["friendship"].Run(structures.Request{})
 	<-forever
 }

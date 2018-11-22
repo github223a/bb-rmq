@@ -1,7 +1,7 @@
 package constants
 
 import (
-	"../templates"
+	"../structures"
 	"encoding/json"
 	"io/ioutil"
 	"log"
@@ -15,8 +15,8 @@ func FailOnErrorReadConfig(err error, msg string) {
 	}
 }
 
-func readConfig() templates.Config {
-	var config templates.Config
+func readConfig() structures.Config {
+	var config structures.Config
 
 	configFile, err := os.Open("./config.development.json")
 	FailOnErrorReadConfig(err, "Error on open config file.")
@@ -27,12 +27,12 @@ func readConfig() templates.Config {
 	return config
 }
 
-var CONFIG = readConfig()
-var INFRASTRUCTURE = map[string] interface{}{}
-
 const NAMESPACE_INTERNAL = "internal"
 const HEADER_RMQ_MESSAGE = "[*] RabbitMQ: "
 const HEADER_HTTP_MESSAGE = "[*] HttpServer: "
 const HEADER_WS_MESSAGE = "[*] WsServer: "
 const HEADER_REDIS_MESSAGE = "[*] Redis: "
 const HEADER_UNKNOWN = "[*] Unknown: "
+
+var CONFIG = readConfig()
+var InfrastructureData structures.InfrastructureData

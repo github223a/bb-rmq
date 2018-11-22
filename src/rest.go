@@ -2,7 +2,7 @@ package src
 
 import (
 	"./constants"
-	"./templates"
+	"./structures"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -16,14 +16,14 @@ func getUrl() string {
 	return fmt.Sprintf(template, host, port, path)
 }
 
-func parseRequest(req *http.Request, variable *templates.Request) {
+func parseRequest(req *http.Request, variable *structures.Request) {
 	decoder := json.NewDecoder(req.Body)
 	err := decoder.Decode(&*variable)
 	FailOnError(err, "Error on parse request.")
 }
 
 func httpRequestProcessing(writer http.ResponseWriter, req *http.Request) {
-	var request templates.Request
+	var request structures.Request
 	parseRequest(req, &request)
 	setSource(&request, "http")
 

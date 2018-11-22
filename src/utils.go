@@ -2,7 +2,7 @@ package src
 
 import (
 	"./constants"
-	"./templates"
+	"./structures"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -27,7 +27,7 @@ func FailOnError(err error, msg string) {
 	}
 }
 
-func logRequest(request templates.Request, t string) {
+func logRequest(request structures.Request, t string) {
 	fmt.Printf("%s Get request %+v\n", getMessageHeader(t), request)
 }
 
@@ -37,6 +37,6 @@ func UnmarshalByteToMap(data []byte, variable *map[string] interface{}) {
 	}
 }
 
-func setSource(request *templates.Request, value string) {
+func setSource(request *structures.Request, value string) {
 	request.Source = value
 }

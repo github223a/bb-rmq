@@ -3,7 +3,7 @@ package methods
 import (
 	"../constants"
 	"../entities"
-	"../templates"
+	"../structures"
 	"encoding/json"
 	"fmt"
 	"github.com/satori/go.uuid"
@@ -11,47 +11,17 @@ import (
 	"log"
 )
 
-func FailOnError(err error, msg string) {
-	if err != nil {
-		log.Fatalf("%s: %s", msg, err)
+var friendship = NewMethodEntity(runFriendship, friendShipMethodSettings)
+
+func runFriendship(request structures.Request) {
+	if request.Namespace == constants.NAMESPACE_INTERNAL {
+		return
 	}
-}
-
-func generateId() uuid.UUID {
-	id, err := uuid.NewV4()
-
-	if err != nil {
-		fmt.Printf("Something went wrong: %s", err)
-		return uuid.UUID{}
-	}
-	return id
-}
-
-type HandshakeMethods struct {}
-
-var handshakeParams = map[string] interface {} {
-	"namespace": constants.CONFIG.Namespace,
-	"methods": map[string] interface{} {
-		"friendship": friendShipSettings,
-		"infrastructure": infrastructureSettings,
-	},
-}
-
-var HandshakeRequest = templates.Request {
-	Id: generateId(),
-	Namespace: constants.NAMESPACE_INTERNAL,
-	Method: "handshake",
-	Domain: nil,
-	Locale: nil,
-	Params: handshakeParams,
-	Source: constants.CONFIG.Namespace,
-}
-
-func runFriendship(request templates.Request) {
-	handshakeMsgByte, marshalErr := json.Marshal(HandshakeRequest)
+	HandshakeMsg.Id = generateId()
+	handshakeMsgByte, marshalErr := json.Marshal(HandshakeMsg)
 	FailOnError(marshalErr, "Failed on marshal handshake message.")
 
-	err := entities.Rabbit.Channels[request.Namespace].Publish(
+	err := entities.Rabbit.Channels[constants.NAMESPACE_INTERNAL].Publish(
 		"",     // exchange
 		constants.NAMESPACE_INTERNAL, // routing key
 		false,  // mandatory
@@ -64,14 +34,45 @@ func runFriendship(request templates.Request) {
 	log.Printf("%s Sent message to [* %s *]. Message %s", constants.HEADER_RMQ_MESSAGE, constants.NAMESPACE_INTERNAL, handshakeMsgByte)
 }
 
-var friendShipSettings = MethodSettings {
+var friendShipMethodSettings = structures.MethodSettings {
 	IsInternal: true,
 	Auth: false,
 	Cache: 0,
-	Middlewares: Middlewares {
+	Middlewares: structures.Middlewares {
 		Before: []string{},
 		After: []string{},
 	},
 }
 
-var Friendship = NewMethodEntity(runFriendship, friendShipSettings)
+var handshakeParams = map[string] interface {} {
+	"namespace": constants.CONFIG.Namespace,
+	"methods": map[string] interface {} {
+		"friendship": friendShipMethodSettings,
+		"infrastructure": infrastructureMethodSettings,
+	},
+}
+
+var HandshakeMsg = structures.Request {
+	Namespace: constants.NAMESPACE_INTERNAL,
+	Method: "handshake",
+	Domain: nil,
+	Locale: nil,
+	Params: handshakeParams,
+	Source: constants.CONFIG.Namespace,
+}
+
+func FailOnError(err error, msg string) {
+	if err != nil {
+		log.Fatalf("%s: %s", msg, err)
+	}
+}
+
+func generateId() uuid.UUID {
+	id, err := uuid.NewV4()
+
+	if err != nil {
+		fmt.Printf("Something went wrong with generate id: %s", err)
+		return uuid.UUID{}
+	}
+	return id
+}

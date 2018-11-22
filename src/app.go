@@ -3,8 +3,8 @@ package src
 import (
 	"./constants"
 	"./entities"
-	methods "./methods"
-	"./templates"
+	"./methods"
+	"./structures"
 	"encoding/json"
 	"fmt"
 	"github.com/streadway/amqp"
@@ -12,13 +12,10 @@ import (
 	"time"
 )
 
-func processingExternalMethod(request templates.Request) {
+func processingExternalMethod(request structures.Request) {
 	fmt.Printf("%+v\n", request)
-	infrastructure := constants.INFRASTRUCTURE["infrastructure"].(map[string] interface{})
-	serviceSettings := infrastructure[request.Namespace].(map[string] interface{})
-	serviceMethods := serviceSettings["methods"].(map[string] interface{})
-	methodSettings := serviceMethods[request.Method].(map[string] interface{})
-	cacheTimer := methodSettings["cache"].(float64)
+	methodSettings := constants.InfrastructureData.Infrastructure[request.Namespace].Methods[request.Method]
+	cacheTimer := methodSettings.Cache
 
 	if constants.CONFIG.UseCache == true && cacheTimer > 0 {
 		//request.cacheKey = getCacheKey(request)
@@ -40,39 +37,49 @@ func processingExternalMethod(request templates.Request) {
 			Body:        []byte(_request),
 		})
 	FailOnError(err, "Failed to publish a message.")
-	log.Printf("%s Sent message to [* %s *]. Message %s", constants.HEADER_RMQ_MESSAGE, constants.NAMESPACE_INTERNAL, _request)
+	log.Printf("%s Sent message to [* %s *]: Message %s", constants.HEADER_RMQ_MESSAGE, constants.NAMESPACE_INTERNAL, _request)
 }
 
-func processingInternalMethod(message templates.Request) {
+func processingInternalMethod(message structures.Request) {
 	validateRequest(message)
 	checkNamespace(message)
 	checkInternalMethod(message)
 	checkToken(message)
-	runMethod(message)
+
+	methods.List[message.Method].Run(message)
 }
 
-func validateRequest(request templates.Request) {
-}
-func checkNamespace(request templates.Request) {
-}
-func checkInternalMethod(request templates.Request) {
-}
-func checkExternalMethod(request templates.Request) {
-}
-func checkToken(request templates.Request) {
+func validateRequest(request structures.Request) {
 }
 
-func runMethod(request templates.Request) {
-	method := methods.List[request.Method]
+func checkNamespace(request structures.Request) {
+	namespace := request.Namespace
+	_, ok := constants.InfrastructureData.Infrastructure[namespace]
 
-	if method == nil {
-		fmt.Println("no method")
-		return // need send error to client
+	if namespace != constants.NAMESPACE_INTERNAL && namespace != constants.CONFIG.Namespace && ok {
+		panic("Invalid request. Namespace not found!")
 	}
-	method.Run(request)
 }
 
-func sendCachedResponse(request templates.Request) {
+func checkInternalMethod(request structures.Request) {
+	if methods.List[request.Method] == nil {
+		panic("Invalid request. Method not found!")
+	}
+
+}
+
+func checkExternalMethod(request structures.Request) {
+	methodSettings, ok := constants.InfrastructureData.Infrastructure[request.Namespace].Methods[request.Method]
+
+	if !ok || (ok && constants.CONFIG.UseIsInternal == true && methodSettings.IsInternal == true) {
+		panic("Invalid request. Method not found!")
+	}
+}
+
+func checkToken(request structures.Request) {
+}
+
+func sendCachedResponse(request structures.Request) {
 
 }
 
@@ -81,13 +88,9 @@ func cacheResponse(message map[string] interface{}) {
 	method := message["method"].(string)
 	cacheKey := message["cacheKey"].(string)
 
-	infrastructure := constants.INFRASTRUCTURE["infrastructure"].(map[string] interface{})
-	serviceSettings := infrastructure[namespace].(map[string] interface{})
-	serviceMethods := serviceSettings["methods"].(map[string] interface{})
-	methodSettings := serviceMethods[method].(map[string] interface{})
+	methodSettings := constants.InfrastructureData.Infrastructure[namespace].Methods[method]
 
-	cacheTimer := methodSettings["cache"].(int)
-	seconds := cacheTimer / 1000
+	seconds := methodSettings.Cache / 1000
 	result := message["result"].(map[string] interface{})
 
 	err := entities.Redis.Client.Set(cacheKey, result, time.Duration(seconds)).Err()
@@ -97,11 +100,11 @@ func cacheResponse(message map[string] interface{}) {
 	}
 }
 
-func getCacheKey(request templates.Request) string {
+func getCacheKey(request structures.Request) string {
 	return "cache key"
 }
 
-func getDeliveryKey(request templates.Request) string {
+func getDeliveryKey(request structures.Request) string {
 	return "delivery key"
 }
 
@@ -147,6 +150,6 @@ func applyAfterMiddlewares(parsedMessage map[string] interface{}) {
 
 }
 
-func applyBeforeMiddlewares(request templates.Request) {
+func applyBeforeMiddlewares(request structures.Request) {
 
 }

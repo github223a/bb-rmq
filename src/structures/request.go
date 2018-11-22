@@ -1,4 +1,4 @@
-package templates
+package structures
 
 import "github.com/satori/go.uuid"
 

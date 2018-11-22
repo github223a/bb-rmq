@@ -1,9 +1,9 @@
-package templates
+package structures
 
 type Config struct {
 	Namespace string `json:"namespace"`
 	UseCache bool `json:"useCache"`
-	UseIsInternal string `json:"useIsInternal"`
+	UseIsInternal bool `json:"useIsInternal"`
 	Redis Redis `json:"redis"`
 	Location Location `json:"location"`
 	RabbitMQ RabbitMQ `json:"rabbitMQ"`
