@@ -18,20 +18,24 @@ func runFriendship(request structures.Request) {
 		return
 	}
 	HandshakeMsg.Id = generateId()
-	handshakeMsgByte, marshalErr := json.Marshal(HandshakeMsg)
-	FailOnError(marshalErr, "Failed on marshal handshake message.")
+	sendToInternal(HandshakeMsg)
+}
 
-	err := entities.Rabbit.Channels[constants.NAMESPACE_INTERNAL].Publish(
+func sendToInternal(request structures.Request) {
+	_requestByte, marshalErr := json.Marshal(request)
+	FailOnError(marshalErr, "Failed on marshal request message.")
+
+	err := entities.Rabbit.Channels[request.Namespace].Publish(
 		"",     // exchange
 		constants.NAMESPACE_INTERNAL, // routing key
 		false,  // mandatory
 		false,  // immediate
 		amqp.Publishing {
 			ContentType: "application/json",
-			Body:        []byte(handshakeMsgByte),
+			Body:        []byte(_requestByte),
 		})
-	FailOnError(err, "Failed to publish a message.")
-	log.Printf("%s Sent message to [* %s *]. Message %s", constants.HEADER_RMQ_MESSAGE, constants.NAMESPACE_INTERNAL, handshakeMsgByte)
+	FailOnError(err, "Failed to publish a message to internal service.")
+	log.Printf("%s Sent message to [* %s *]: Message %s", constants.HEADER_RMQ_MESSAGE, constants.NAMESPACE_INTERNAL, _requestByte)
 }
 
 var friendShipMethodSettings = structures.MethodSettings {

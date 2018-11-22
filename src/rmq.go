@@ -13,6 +13,23 @@ import (
 	"strconv"
 )
 
+func sendToInternal(request structures.Request) {
+	_requestByte, marshalErr := json.Marshal(request)
+	FailOnError(marshalErr, "Failed on marshal request message.")
+
+	err := entities.Rabbit.Channels[request.Namespace].Publish(
+		"",     // exchange
+		constants.NAMESPACE_INTERNAL, // routing key
+		false,  // mandatory
+		false,  // immediate
+		amqp.Publishing {
+			ContentType: "application/json",
+			Body:        []byte(_requestByte),
+		})
+	FailOnError(err, "Failed to publish a message to internal service.")
+	log.Printf("%s Sent message to [* %s *]: Message %s", constants.HEADER_RMQ_MESSAGE, constants.NAMESPACE_INTERNAL, _requestByte)
+}
+
 func getConfigValue(reflectConnection reflect.Type, variable *string, name string ) {
 	if *variable == "" {
 		field, _ := reflectConnection.FieldByName(name)

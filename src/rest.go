@@ -9,17 +9,12 @@ import (
 	"net/http"
 )
 
-func getUrl() string {
-	template := "http://%s:%d%s"
-	host, path, port := constants.CONFIG.Location.Rest.Host, constants.CONFIG.Location.Rest.Path, constants.CONFIG.Location.Rest.Port
+func HttpServerInit() {
+	http.HandleFunc(constants.CONFIG.Location.Rest.Path, httpRequestProcessing) // set router
+	log.Printf(constants.HEADER_HTTP_MESSAGE + "Server is starting by url %s", getUrl())
 
-	return fmt.Sprintf(template, host, port, path)
-}
-
-func parseRequest(req *http.Request, variable *structures.Request) {
-	decoder := json.NewDecoder(req.Body)
-	err := decoder.Decode(&*variable)
-	FailOnError(err, "Error on parse request.")
+	err := http.ListenAndServe(fmt.Sprintf(":%d", constants.CONFIG.Location.Rest.Port), nil) // set listen port
+	FailOnError(err, "Error on start http server.")
 }
 
 func httpRequestProcessing(writer http.ResponseWriter, req *http.Request) {
@@ -34,10 +29,15 @@ func httpRequestProcessing(writer http.ResponseWriter, req *http.Request) {
 	logRequest(request, "http")
 }
 
-func HttpServerInit() {
-	http.HandleFunc(constants.CONFIG.Location.Rest.Path, httpRequestProcessing) // set router
-	log.Printf(constants.HEADER_HTTP_MESSAGE + "Server is starting by url %s", getUrl())
+func getUrl() string {
+	template := "http://%s:%d%s"
+	host, path, port := constants.CONFIG.Location.Rest.Host, constants.CONFIG.Location.Rest.Path, constants.CONFIG.Location.Rest.Port
 
-	err := http.ListenAndServe(fmt.Sprintf(":%d", constants.CONFIG.Location.Rest.Port), nil) // set listen port
-	FailOnError(err, "Error on start http server.")
+	return fmt.Sprintf(template, host, port, path)
+}
+
+func parseRequest(req *http.Request, variable *structures.Request) {
+	decoder := json.NewDecoder(req.Body)
+	err := decoder.Decode(&*variable)
+	FailOnError(err, "Error on parse request.")
 }

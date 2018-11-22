@@ -5,49 +5,31 @@ import (
 	"./entities"
 	"./methods"
 	"./structures"
-	"encoding/json"
 	"fmt"
-	"github.com/streadway/amqp"
 	"log"
 	"time"
 )
 
 func processingExternalMethod(request structures.Request) {
-	fmt.Printf("%+v\n", request)
-	infrastructure := constants.InfrastructureData.Infrastructure[request.Namespace].(map[string] interface{})
-	methodSettings := infrastructure["methods"].(map[string] interface{})[request.Method].(structures.MethodSettings)
-	cacheTimer := methodSettings.Cache
+	//fmt.Printf("%+v\n", request)
+	cacheTimer := getMethodSettings(request).Cache
 
 	if constants.CONFIG.UseCache == true && cacheTimer > 0 {
 		//request.cacheKey = getCacheKey(request)
 		sendCachedResponse(request)
 		return
 	}
-
-	_request, marshalErr := json.Marshal(request)
-	FailOnError(marshalErr, "Failed on marshal request message.")
-
 	applyBeforeMiddlewares(request)
-	err := entities.Rabbit.Channels[request.Namespace].Publish(
-		"",     // exchange
-		constants.NAMESPACE_INTERNAL, // routing key
-		false,  // mandatory
-		false,  // immediate
-		amqp.Publishing {
-			ContentType: "application/json",
-			Body:        []byte(_request),
-		})
-	FailOnError(err, "Failed to publish a message.")
-	log.Printf("%s Sent message to [* %s *]: Message %s", constants.HEADER_RMQ_MESSAGE, constants.NAMESPACE_INTERNAL, _request)
+	sendToInternal(request)
 }
 
-func processingInternalMethod(message structures.Request) {
-	validateRequest(message)
-	checkNamespace(message)
-	checkInternalMethod(message)
-	checkToken(message)
+func processingInternalMethod(request structures.Request) {
+	validateRequest(request)
+	checkNamespace(request)
+	checkInternalMethod(request)
+	checkToken(request)
 
-	methods.List[message.Method].Run(message)
+	methods.List[request.Method].Run(request)
 }
 
 func validateRequest(request structures.Request) {
@@ -57,7 +39,7 @@ func checkNamespace(request structures.Request) {
 	namespace := request.Namespace
 	_, ok := constants.InfrastructureData.Infrastructure[namespace]
 
-	if namespace != constants.NAMESPACE_INTERNAL && namespace != constants.CONFIG.Namespace && ok {
+	if namespace != constants.NAMESPACE_INTERNAL && !ok {
 		panic("Invalid request. Namespace not found!")
 	}
 }
@@ -70,10 +52,12 @@ func checkInternalMethod(request structures.Request) {
 }
 
 func checkExternalMethod(request structures.Request) {
-	infrastructure := constants.InfrastructureData.Infrastructure[request.Namespace].(map[string] interface{})
-	methodSettings, ok := infrastructure["methods"].(map[string] interface{})[request.Method].(structures.MethodSettings)
-
-	if !ok || (ok && constants.CONFIG.UseIsInternal == true && methodSettings.IsInternal == true) {
+	namespaceSettings := getNamespaceSettings(request)
+	methodSettings, isExist := namespaceSettings["methods"].(map[string] interface{})[request.Method]
+	fmt.Printf("req = %+v\n",  request)
+	fmt.Printf("lala %v %s", isExist, methodSettings)
+	methodSettings2 := methodSettings.(map[string] interface{})
+	if !isExist || (isExist && constants.CONFIG.UseIsInternal == true && methodSettings2["isInternal"] == true) {
 		panic("Invalid request. Method not found!")
 	}
 }
@@ -89,8 +73,7 @@ func cacheResponse(message map[string] interface{}) {
 	namespace := message["namespace"].(string)
 	method := message["method"].(string)
 	cacheKey := message["cacheKey"].(string)
-	infrastructure := constants.InfrastructureData.Infrastructure[namespace].(map[string] interface{})
-	methodSettings := infrastructure["methods"].(map[string] interface{})[method].(structures.MethodSettings)
+	methodSettings := getMethodSettings(structures.Request{Namespace:namespace, Method:method})
 
 	seconds := methodSettings.Cache / 1000
 	result := message["result"].(map[string] interface{})
