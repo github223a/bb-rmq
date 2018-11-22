@@ -14,7 +14,8 @@ import (
 
 func processingExternalMethod(request structures.Request) {
 	fmt.Printf("%+v\n", request)
-	methodSettings := constants.InfrastructureData.Infrastructure[request.Namespace].Methods[request.Method]
+	infrastructure := constants.InfrastructureData.Infrastructure[request.Namespace].(map[string] interface{})
+	methodSettings := infrastructure["methods"].(map[string] interface{})[request.Method].(structures.MethodSettings)
 	cacheTimer := methodSettings.Cache
 
 	if constants.CONFIG.UseCache == true && cacheTimer > 0 {
@@ -69,7 +70,8 @@ func checkInternalMethod(request structures.Request) {
 }
 
 func checkExternalMethod(request structures.Request) {
-	methodSettings, ok := constants.InfrastructureData.Infrastructure[request.Namespace].Methods[request.Method]
+	infrastructure := constants.InfrastructureData.Infrastructure[request.Namespace].(map[string] interface{})
+	methodSettings, ok := infrastructure["methods"].(map[string] interface{})[request.Method].(structures.MethodSettings)
 
 	if !ok || (ok && constants.CONFIG.UseIsInternal == true && methodSettings.IsInternal == true) {
 		panic("Invalid request. Method not found!")
@@ -87,8 +89,8 @@ func cacheResponse(message map[string] interface{}) {
 	namespace := message["namespace"].(string)
 	method := message["method"].(string)
 	cacheKey := message["cacheKey"].(string)
-
-	methodSettings := constants.InfrastructureData.Infrastructure[namespace].Methods[method]
+	infrastructure := constants.InfrastructureData.Infrastructure[namespace].(map[string] interface{})
+	methodSettings := infrastructure["methods"].(map[string] interface{})[method].(structures.MethodSettings)
 
 	seconds := methodSettings.Cache / 1000
 	result := message["result"].(map[string] interface{})

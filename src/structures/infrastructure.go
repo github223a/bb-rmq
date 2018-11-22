@@ -9,10 +9,5 @@ type InfrastructureData struct {
 	SessionLifetime float64 `json:"sessionLifetime"`
 	Expectation float64 `json:"expectation"`
 	Shardings map[string] interface {} `json:"shardings"`
-	Infrastructure map[string] InfrastructureServiceMethods `json:"infrastructure"`
-	//Infrastructure map[string] interface{} `json:"infrastructure"`
-}
-
-type InfrastructureServiceMethods struct {
-	Methods map[string] MethodSettings `json:"methods"`
+	Infrastructure map[string] interface{} `json:"infrastructure"`
 }

@@ -3,15 +3,12 @@ package methods
 import (
 	"../constants"
 	"../structures"
-	"fmt"
 	"log"
 )
 
 var infrastructure = NewMethodEntity(runInfrastructure, infrastructureMethodSettings)
 
 func runInfrastructure(request structures.Request) {
-	fmt.Printf("alallalaa %+v\n", request)
-
 	constants.InfrastructureData = structures.InfrastructureData {
 		RedisPrefix: request.Params["redisPrefix"].(string),
 		RedisPrefixSession: request.Params["redisPrefixSession"].(string),
@@ -21,7 +18,7 @@ func runInfrastructure(request structures.Request) {
 		SessionLifetime: request.Params["sessionLifetime"].(float64),
 		Expectation: request.Params["expectation"].(float64),
 		Shardings: request.Params["shardings"].(map[string] interface{}),
-		Infrastructure: request.Params["infrastructure"].(map[string] structures.InfrastructureServiceMethods),
+		Infrastructure: request.Params["infrastructure"].(map[string] interface{}),
 	}
 	log.Printf("%sInfrastructure updated.", constants.HEADER_RMQ_MESSAGE)
 }
