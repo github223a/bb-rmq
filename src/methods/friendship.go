@@ -11,7 +11,7 @@ import (
 	"log"
 )
 
-var friendship = NewMethodEntity(runFriendship, friendShipMethodSettings)
+var friendship = createMethod(runFriendship, friendShipMethodSettings)
 
 func runFriendship(request structures.Request) {
 	if request.Namespace == constants.NAMESPACE_INTERNAL {
@@ -25,7 +25,7 @@ func sendToInternal(request structures.Request) {
 	_requestByte, marshalErr := json.Marshal(request)
 	FailOnError(marshalErr, "Failed on marshal request message.")
 
-	err := entities.Rabbit.Channels[request.Namespace].Publish(
+	err := entities.Rabbit.Channels[constants.NAMESPACE_INTERNAL].Publish(
 		"",     // exchange
 		constants.NAMESPACE_INTERNAL, // routing key
 		false,  // mandatory

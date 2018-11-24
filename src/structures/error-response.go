@@ -10,4 +10,5 @@ type ErrorResponse struct {
 	Locale string `json:"locale"`
 	Error map[string] interface{} `json:"error"`
 	Source string `json:"source"`
+	ResponseQueue *string `json:"responseQueue"`
 }

@@ -10,4 +10,5 @@ type Request struct {
 	Locale *string `json:"locale"`
 	Params map[string] interface{} `json:"params"`
 	Source string `json:"source"`
+	ResponseQueue *string `json:"responseQueue"`
 }

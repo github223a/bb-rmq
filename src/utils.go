@@ -21,14 +21,12 @@ func getMessageHeader(t string) string {
 	}
 }
 
-func getNamespaceSettings(request structures.Request) map[string] interface {} {
-	return constants.InfrastructureData.Infrastructure[request.Namespace].(map[string] interface{})
+func getNamespaceSettings(request structures.Request) structures.NamespaceSettings {
+	return constants.InfrastructureData.Infrastructure[request.Namespace]
 }
 
 func getMethodSettings(request structures.Request) structures.MethodSettings {
-	infrastructure := getNamespaceSettings(request)
-	method := infrastructure["methods"].(map[string] interface{})[request.Method].(structures.MethodSettings)
-	return method
+	return getNamespaceSettings(request).Methods[request.Method]
 }
 
 func FailOnError(err error, msg string) {

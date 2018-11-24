@@ -9,7 +9,7 @@ var List = map[string] *structures.Method {
 	"infrastructure": infrastructure,
 }
 
-func NewMethodEntity(run func(request structures.Request), settings structures.MethodSettings) *structures.Method {
+func createMethod(run func(request structures.Request), settings structures.MethodSettings) *structures.Method {
 	return &structures.Method {
 		Run: run,
 		Settings: settings,

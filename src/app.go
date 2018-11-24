@@ -7,14 +7,21 @@ import (
 	"./structures"
 	"fmt"
 	"log"
+	"net/http"
 	"time"
 )
 
-func processingExternalMethod(request structures.Request) {
+func processingExternalMethod(request structures.Request, transport http.ResponseWriter) {
 	//fmt.Printf("%+v\n", request)
 	cacheTimer := getMethodSettings(request).Cache
+	fmt.Println(1)
+	go func() {
+		enableResponseListener(transport)
+	}()
+	fmt.Println(2)
 
 	if constants.CONFIG.UseCache == true && cacheTimer > 0 {
+		fmt.Println(4)
 		//request.cacheKey = getCacheKey(request)
 		sendCachedResponse(request)
 		return
@@ -53,11 +60,9 @@ func checkInternalMethod(request structures.Request) {
 
 func checkExternalMethod(request structures.Request) {
 	namespaceSettings := getNamespaceSettings(request)
-	methodSettings, isExist := namespaceSettings["methods"].(map[string] interface{})[request.Method]
-	fmt.Printf("req = %+v\n",  request)
-	fmt.Printf("lala %v %s", isExist, methodSettings)
-	methodSettings2 := methodSettings.(map[string] interface{})
-	if !isExist || (isExist && constants.CONFIG.UseIsInternal == true && methodSettings2["isInternal"] == true) {
+	methodSettings, isExist := namespaceSettings.Methods[request.Method]
+
+	if !isExist || (isExist && constants.CONFIG.UseIsInternal == true && methodSettings.IsInternal == true) {
 		panic("Invalid request. Method not found!")
 	}
 }
@@ -96,31 +101,38 @@ func getDeliveryKey(request structures.Request) string {
 func sendResponseToClient(parsedMessage map[string]interface{}, fromCache bool) {
 	source := parsedMessage["source"].(string)
 	deliveryKey := parsedMessage["deliveryKey"]
+	fmt.Println("message 777 = ", parsedMessage)
 
 	if constants.CONFIG.UseCache == true && parsedMessage["cacheKey"] != nil && fromCache == false {
 		cacheResponse(parsedMessage)
 	}
-
+	//fmt.Println("message 777 = ", parsedMessage)
 	switch true {
 	case deliveryKey != nil:
 		massSending(parsedMessage)
-		return
+		break
 	case source == "http":
 		sendByHttp(parsedMessage)
-		return
+		break
 	case source == "ws":
 		sendByWs(parsedMessage)
-		return
+		break
 	default:
 		log.Printf("%s Unknown source, can't send response %s", constants.HEADER_RMQ_MESSAGE, parsedMessage)
 	}
 }
 
 func sendByHttp(message map[string]interface{}) {
-	channel := make(chan string)
-	go func() {
-		<-channel
-	}()
+	fmt.Println(7)
+
+	fmt.Printf("SEND BY HTTP message = %s", message)
+	ch := entities.Emitter.Channels["1"]
+	fmt.Printf("\n channel = %v", ch)
+	ch <- message
+	//channel := make(chan string)
+	//go func() {
+	//	<-channel
+	//}()
 }
 
 func sendByWs(message map[string]interface{}) {

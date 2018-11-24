@@ -16,9 +16,10 @@ import (
 func sendToInternal(request structures.Request) {
 	_requestByte, marshalErr := json.Marshal(request)
 	FailOnError(marshalErr, "Failed on marshal request message.")
+	fmt.Println(6)
 
-	err := entities.Rabbit.Channels[request.Namespace].Publish(
-		"",     // exchange
+	err := entities.Rabbit.Channels[constants.NAMESPACE_INTERNAL].Publish(
+		"", // exchange
 		constants.NAMESPACE_INTERNAL, // routing key
 		false,  // mandatory
 		false,  // immediate
@@ -132,6 +133,7 @@ func bindQueue(ch *amqp.Channel, settings map[string] interface{}) {
 }
 
 func declareCunsumer (channel *amqp.Channel, settings map[string] interface{}) {
+	fmt.Println("888")
 	queueName := settings["queueName"].(string)
 	queueOptions := settings["queueOptions"].(map[string] interface{})
 
@@ -163,20 +165,23 @@ func rmqProcessing(message []byte) {
 	UnmarshalByteToMap(message, &parsedMessage)
 
 	switch true {
-		case parsedMessage["error"] == nil && parsedMessage["result"] == nil:
-			var request structures.Request
+	case parsedMessage["error"] == nil && parsedMessage["result"] == nil:
+		var request structures.Request
 			err := json.Unmarshal(message, &request)
 			FailOnError(err, "Error on unmarshal byte message to struct.")
 			processingInternalMethod(request)
 			break
 		case parsedMessage["result"] != nil:
 			applyAfterMiddlewares(parsedMessage)
+			sendResponseToClient(parsedMessage, false)
+			break
 		default:
 			sendResponseToClient(parsedMessage, false)
 	}
 }
 
 func RmqInit() {
+	entities.Emitter = entities.CreateEmitter()
 	url := getRabbitUrl()
 	conn, err := amqp.Dial(url)
 	FailOnError(err, "Failed to connect to rabbitMQ")
