@@ -3,7 +3,6 @@ package src
 import (
 	"./constants"
 	"./structures"
-	"encoding/json"
 	"fmt"
 	"log"
 )
@@ -37,12 +36,6 @@ func FailOnError(err error, msg string) {
 
 func logRequest(request structures.Request, t string) {
 	fmt.Printf("%s Get request %+v\n", getMessageHeader(t), request)
-}
-
-func UnmarshalByteToMap(data []byte, variable *map[string] interface{}) {
-	if err := json.Unmarshal(data, &*variable); err != nil {
-		FailOnError(err, "Error on unmarshal byte message")
-	}
 }
 
 func setSource(request *structures.Request, value string) {

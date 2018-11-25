@@ -65,8 +65,6 @@ func enableResponseListener(transport http.ResponseWriter) {
 		http.Error(transport, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	fmt.Println(3)
-
 	transport.Header().Set("Content-Type", "application/json")
 	transport.Write(response)
 }

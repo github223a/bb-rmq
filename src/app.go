@@ -14,14 +14,12 @@ import (
 func processingExternalMethod(request structures.Request, transport http.ResponseWriter) {
 	//fmt.Printf("%+v\n", request)
 	cacheTimer := getMethodSettings(request).Cache
-	fmt.Println(1)
+
 	go func() {
 		enableResponseListener(transport)
 	}()
-	fmt.Println(2)
 
 	if constants.CONFIG.UseCache == true && cacheTimer > 0 {
-		fmt.Println(4)
 		//request.cacheKey = getCacheKey(request)
 		sendCachedResponse(request)
 		return
@@ -75,6 +73,7 @@ func sendCachedResponse(request structures.Request) {
 }
 
 func cacheResponse(message map[string] interface{}) {
+	fmt.Println("CACHE")
 	namespace := message["namespace"].(string)
 	method := message["method"].(string)
 	cacheKey := message["cacheKey"].(string)
@@ -101,7 +100,6 @@ func getDeliveryKey(request structures.Request) string {
 func sendResponseToClient(parsedMessage map[string]interface{}, fromCache bool) {
 	source := parsedMessage["source"].(string)
 	deliveryKey := parsedMessage["deliveryKey"]
-	fmt.Println("message 777 = ", parsedMessage)
 
 	if constants.CONFIG.UseCache == true && parsedMessage["cacheKey"] != nil && fromCache == false {
 		cacheResponse(parsedMessage)
@@ -129,10 +127,6 @@ func sendByHttp(message map[string]interface{}) {
 	ch := entities.Emitter.Channels["1"]
 	fmt.Printf("\n channel = %v", ch)
 	ch <- message
-	//channel := make(chan string)
-	//go func() {
-	//	<-channel
-	//}()
 }
 
 func sendByWs(message map[string]interface{}) {

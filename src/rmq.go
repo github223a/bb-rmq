@@ -133,18 +133,17 @@ func bindQueue(ch *amqp.Channel, settings map[string] interface{}) {
 }
 
 func declareCunsumer (channel *amqp.Channel, settings map[string] interface{}) {
-	fmt.Println("888")
 	queueName := settings["queueName"].(string)
 	queueOptions := settings["queueOptions"].(map[string] interface{})
 
 	msgs, err := channel.Consume(
 		queueName, // queue
-		"",     // consumer
+		"", // consumer
 		getQueueOption(queueOptions, "noAck"),   // auto-ack
-		false,  // exclusive
-		false,  // no-local
-		false,  // no-wait
-		nil,    // args
+		false, // exclusive
+		false, // no-local
+		false, // no-wait
+		nil, // args
 	)
 	FailOnError(err, "Failed to register a consumer")
 
@@ -162,7 +161,8 @@ func declareCunsumer (channel *amqp.Channel, settings map[string] interface{}) {
 
 func rmqProcessing(message []byte) {
 	var parsedMessage map[string] interface{}
-	UnmarshalByteToMap(message, &parsedMessage)
+	err := json.Unmarshal(message, &parsedMessage)
+	FailOnError(err, "Error on unmarshal rabbit message.")
 
 	switch true {
 	case parsedMessage["error"] == nil && parsedMessage["result"] == nil:

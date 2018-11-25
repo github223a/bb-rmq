@@ -22,6 +22,10 @@ func readConfig() structures.Config {
 	FailOnErrorReadConfig(err, "Error on open config file.")
 	defer configFile.Close()
 
+	//decoder := json.NewDecoder(configFile)
+	//decodeErr := decoder.Decode(&config)
+	//FailOnErrorReadConfig(decodeErr, "Error on decode config.")
+
 	byteValue, _ := ioutil.ReadAll(configFile)
 	json.Unmarshal([]byte(byteValue), &config)
 	return config
