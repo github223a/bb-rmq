@@ -7,6 +7,7 @@ import (
 	"./structures"
 	"encoding/json"
 	"log"
+	"math/rand"
 	"net/http"
 	"time"
 )
@@ -26,6 +27,8 @@ func processingExternalMethod(request structures.Request, transport http.Respons
 	}
 	applyBeforeMiddlewares(request)
 	sendToInternal(request)
+	amt := time.Duration(rand.Intn(250))
+	time.Sleep(time.Millisecond * amt)
 }
 
 func processingInternalMethod(request structures.Request) {
