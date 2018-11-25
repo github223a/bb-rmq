@@ -20,16 +20,17 @@ func HttpServerInit() {
 	//log.Printf("listening on port %s", *flagPort)
 	//log.Fatal(http.ListenAndServe(":" + string(constants.CONFIG.Location.Rest.Port), mux))
 
-	http.HandleFunc(constants.CONFIG.Location.Rest.Path, httpPostRequestHandler) // set router
+	http.HandleFunc(constants.CONFIG.Location.Rest.Path, postHandler) // set router
+	port := fmt.Sprintf(":%d", constants.CONFIG.Location.Rest.Port)
 	log.Printf(constants.HEADER_HTTP_MESSAGE + "Server is starting by url %s", getUrl())
-	err := http.ListenAndServe(fmt.Sprintf(":%d", constants.CONFIG.Location.Rest.Port), nil) // set listen port
-	FailOnError(err, "Error on start http server.")
+	err := http.ListenAndServe(port, nil) // set listen port
+	FailOnError(err, "Error on start http server.", "http")
 }
 
-func httpPostRequestHandler(writer http.ResponseWriter, req *http.Request) {
+func postHandler(writer http.ResponseWriter, req *http.Request) {
 	var request structures.Request
 
-	parseRequest(req, &request)
+	parseRequest(req, writer, &request)
 	setSource(&request, "http")
 	logRequest(request, "http")
 
@@ -46,25 +47,26 @@ func getUrl() string {
 	return fmt.Sprintf(template, host, port, path)
 }
 
-func parseRequest(req *http.Request, variable *structures.Request) {
-	decoder := json.NewDecoder(req.Body)
-	err := decoder.Decode(&*variable)
-	FailOnError(err, "Error on parse request.")
+func parseRequest(req *http.Request, writer http.ResponseWriter, variable *structures.Request) {
+	if req.Method != "POST" {
+		http.Error(writer, http.StatusText(405), 405)
+		return
+	}
+	err := json.NewDecoder(req.Body).Decode(&*variable)
+	FailOnError(err, "Error on parse request.", "http")
 }
 
 func enableResponseListener(transport http.ResponseWriter) {
-	channel := make(chan interface{})
-	entities.Emitter.Channels["1"] = channel
-	msg := <- entities.Emitter.Channels["1"]
+	entities.Emitter.Channels["1"] = make(chan interface{})
+	response := <- entities.Emitter.Channels["1"]
 	defer close(entities.Emitter.Channels["1"])
+	defer delete(entities.Emitter.Channels, "1")
 
-	fmt.Println("\n msg = ", msg)
-	response, err := json.Marshal(msg)
-
-	if err != nil {
-		http.Error(transport, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	transport.Header().Set("Content-Type", "application/json")
-	transport.Write(response)
+	responseB, _ := json.Marshal(response)
+	//transport.Header().Del("Content-Length")
+	transport.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	//transport.Header().Set("Content-Length", strconv.Itoa(len(responseB)))
+	_, writeErr := transport.Write(responseB)
+	fmt.Println("write error", writeErr)
+	log.Printf("%s Response %s was sent.", constants.HEADER_HTTP_MESSAGE, response)
 }

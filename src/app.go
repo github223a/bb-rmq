@@ -5,7 +5,7 @@ import (
 	"./entities"
 	"./methods"
 	"./structures"
-	"fmt"
+	"encoding/json"
 	"log"
 	"net/http"
 	"time"
@@ -72,20 +72,14 @@ func sendCachedResponse(request structures.Request) {
 
 }
 
-func cacheResponse(message map[string] interface{}) {
-	fmt.Println("CACHE")
-	namespace := message["namespace"].(string)
-	method := message["method"].(string)
-	cacheKey := message["cacheKey"].(string)
-	methodSettings := getMethodSettings(structures.Request{Namespace:namespace, Method:method})
-
+func cacheResponse(response structures.SuccessResponse) {
+	methodSettings := getMethodSettings(structures.Request{Namespace:response.Namespace, Method:response.Method})
 	seconds := methodSettings.Cache / 1000
-	result := message["result"].(map[string] interface{})
 
-	err := entities.Redis.Client.Set(cacheKey, result, time.Duration(seconds)).Err()
-	FailOnError(err, "Error on cache response in redis.")
+	err := entities.Redis.Client.Set(*response.CacheKey, response.Result, time.Duration(seconds)).Err()
+	FailOnError(err, "Error on cache response.", "redis")
 	if err == nil {
-		log.Printf("%s Response with namespace = %s, method = %s was cached!", constants.HEADER_REDIS_MESSAGE, namespace, method)
+		log.Printf("%s Response with namespace = %s, method = %s was cached!", constants.HEADER_REDIS_MESSAGE, response.Namespace, response.Method)
 	}
 }
 
@@ -102,7 +96,10 @@ func sendResponseToClient(parsedMessage map[string]interface{}, fromCache bool) 
 	deliveryKey := parsedMessage["deliveryKey"]
 
 	if constants.CONFIG.UseCache == true && parsedMessage["cacheKey"] != nil && fromCache == false {
-		cacheResponse(parsedMessage)
+		var successResponse structures.SuccessResponse
+		respB, _ := json.Marshal(parsedMessage)
+		json.Unmarshal(respB, &successResponse)
+		cacheResponse(successResponse)
 	}
 	//fmt.Println("message 777 = ", parsedMessage)
 	switch true {
@@ -121,11 +118,7 @@ func sendResponseToClient(parsedMessage map[string]interface{}, fromCache bool) 
 }
 
 func sendByHttp(message map[string]interface{}) {
-	fmt.Println(7)
-
-	fmt.Printf("SEND BY HTTP message = %s", message)
 	ch := entities.Emitter.Channels["1"]
-	fmt.Printf("\n channel = %v", ch)
 	ch <- message
 }
 

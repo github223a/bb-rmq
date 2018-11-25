@@ -11,6 +11,6 @@ type SuccessResponse struct {
 	Result map[string] interface{} `json:"result"`
 	Source string `json:"source"`
 	ResponseQueue *string `json:"responseQueue"`
-	CacheKey string `json:"cacheKey"`
-	Token string `json:"token"`
+	CacheKey *string `json:"cacheKey"`
+	Token *string `json:"token"`
 }

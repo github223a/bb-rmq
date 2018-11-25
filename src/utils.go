@@ -15,6 +15,8 @@ func getMessageHeader(t string) string {
 		return constants.HEADER_HTTP_MESSAGE
 	case "ws":
 		return constants.HEADER_WS_MESSAGE
+	case "redis":
+		return constants.HEADER_REDIS_MESSAGE
 	default:
 		return constants.HEADER_UNKNOWN
 	}
@@ -28,9 +30,10 @@ func getMethodSettings(request structures.Request) structures.MethodSettings {
 	return getNamespaceSettings(request).Methods[request.Method]
 }
 
-func FailOnError(err error, msg string) {
+func FailOnError(err error, msg string, source string) {
+	header := getMessageHeader(source)
 	if err != nil {
-		log.Fatalf("%s: %s", msg, err)
+		log.Fatalf("%s %s: %s", header, msg, err)
 	}
 }
 

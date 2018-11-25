@@ -17,9 +17,7 @@ func RedisInit() {
 	})
 
 	_, err := client.Ping().Result()
-	if err != nil {
-		panic(err)
-	}
+	FailOnError(err, "Error on ping redis.", "redist")
 
 	entities.Redis = entities.NewRedisEntity(client)
 	log.Printf(constants.HEADER_REDIS_MESSAGE + "Redis is starting by url %s", url)

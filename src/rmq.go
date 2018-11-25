@@ -15,8 +15,7 @@ import (
 
 func sendToInternal(request structures.Request) {
 	_requestByte, marshalErr := json.Marshal(request)
-	FailOnError(marshalErr, "Failed on marshal request message.")
-	fmt.Println(6)
+	FailOnError(marshalErr, "Failed on marshal request message.", "rmq")
 
 	err := entities.Rabbit.Channels[constants.NAMESPACE_INTERNAL].Publish(
 		"", // exchange
@@ -27,7 +26,7 @@ func sendToInternal(request structures.Request) {
 			ContentType: "application/json",
 			Body:        []byte(_requestByte),
 		})
-	FailOnError(err, "Failed to publish a message to internal service.")
+	FailOnError(err, "Failed to publish a message to internal service.", "rmq")
 	log.Printf("%s Sent message to [* %s *]: Message %s", constants.HEADER_RMQ_MESSAGE, constants.NAMESPACE_INTERNAL, _requestByte)
 }
 
@@ -99,7 +98,7 @@ func declareQueue (ch *amqp.Channel, settings map[string] interface{}) {
 		false,   // no-wait
 		args,     // arguments
 	)
-	FailOnError(queueError, "Failed to declare a queue")
+	FailOnError(queueError, "Failed to declare a queue", "rmq")
 }
 
 func declareExchange (ch *amqp.Channel, settings map[string] interface{}) {
@@ -115,7 +114,7 @@ func declareExchange (ch *amqp.Channel, settings map[string] interface{}) {
 		false,    // no-wait
 		nil,      // arguments
 	)
-	FailOnError(err, "Failed to declare an exchange")
+	FailOnError(err, "Failed to declare an exchange", "rmq")
 }
 
 func bindQueue(ch *amqp.Channel, settings map[string] interface{}) {
@@ -129,7 +128,7 @@ func bindQueue(ch *amqp.Channel, settings map[string] interface{}) {
 		exchangeName, // exchange
 		false,
 		nil)
-	FailOnError(err, "Failed to bind a queue")
+	FailOnError(err, "Failed to bind a queue", "rmq")
 }
 
 func declareCunsumer (channel *amqp.Channel, settings map[string] interface{}) {
@@ -145,7 +144,7 @@ func declareCunsumer (channel *amqp.Channel, settings map[string] interface{}) {
 		false, // no-wait
 		nil, // args
 	)
-	FailOnError(err, "Failed to register a consumer")
+	FailOnError(err, "Failed to register a consumer", "rmq")
 
 	go func() {
 		for message := range msgs {
@@ -153,7 +152,7 @@ func declareCunsumer (channel *amqp.Channel, settings map[string] interface{}) {
 			rmqProcessing(message.Body)
 		}
 	}()
-	if queueName == "" {
+	if queueName == "" && settings["bindingKey"] != nil {
 		queueName = settings["bindingKey"].(string)
 	}
 	log.Printf("%s Waiting for messages from %s channel. To exit press CTRL+C", constants.HEADER_RMQ_MESSAGE, queueName)
@@ -162,21 +161,21 @@ func declareCunsumer (channel *amqp.Channel, settings map[string] interface{}) {
 func rmqProcessing(message []byte) {
 	var parsedMessage map[string] interface{}
 	err := json.Unmarshal(message, &parsedMessage)
-	FailOnError(err, "Error on unmarshal rabbit message.")
+	FailOnError(err, "Error on unmarshal rabbit message.", "rmq")
 
 	switch true {
 	case parsedMessage["error"] == nil && parsedMessage["result"] == nil:
 		var request structures.Request
-			err := json.Unmarshal(message, &request)
-			FailOnError(err, "Error on unmarshal byte message to struct.")
-			processingInternalMethod(request)
-			break
-		case parsedMessage["result"] != nil:
-			applyAfterMiddlewares(parsedMessage)
-			sendResponseToClient(parsedMessage, false)
-			break
-		default:
-			sendResponseToClient(parsedMessage, false)
+		err := json.Unmarshal(message, &request)
+		FailOnError(err, "Error on unmarshal byte message to struct.", "rmq")
+		processingInternalMethod(request)
+		break
+	case parsedMessage["result"] != nil:
+		applyAfterMiddlewares(parsedMessage)
+		sendResponseToClient(parsedMessage, false)
+		break
+	default:
+		sendResponseToClient(parsedMessage, false)
 	}
 }
 
@@ -184,7 +183,7 @@ func RmqInit() {
 	entities.Emitter = entities.CreateEmitter()
 	url := getRabbitUrl()
 	conn, err := amqp.Dial(url)
-	FailOnError(err, "Failed to connect to rabbitMQ")
+	FailOnError(err, "%s Failed to connect to rabbitMQ", "rmq")
 	defer conn.Close()
 
 	entities.Rabbit = entities.NewRabbitEntity(conn)
@@ -193,7 +192,7 @@ func RmqInit() {
 
 	for channelName, _ := range channels {
 		channel, err := conn.Channel()
-		FailOnError(err, "Failed to open a channel")
+		FailOnError(err, "Failed to open connection with channel", "rmq")
 		//defer channel.Close()
 
 		entities.Rabbit.AddChannel(channelName, channel)
