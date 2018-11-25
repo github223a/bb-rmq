@@ -11,15 +11,6 @@ import (
 )
 
 func HttpServerInit() {
-	//var (
-	//	// flagPort is the open port the application listens on
-	//	flagPort = flag.String("port", "7777", "Port to listen on")
-	//)
-	//mux := http.NewServeMux()
-	//mux.HandleFunc(constants.CONFIG.Location.Rest.Path, httpPostRequestHandler)
-	//log.Printf("listening on port %s", *flagPort)
-	//log.Fatal(http.ListenAndServe(":" + string(constants.CONFIG.Location.Rest.Port), mux))
-
 	http.HandleFunc(constants.CONFIG.Location.Rest.Path, postHandler) // set router
 	port := fmt.Sprintf(":%d", constants.CONFIG.Location.Rest.Port)
 	log.Printf(constants.HEADER_HTTP_MESSAGE + "Server is starting by url %s", getUrl())
@@ -33,7 +24,6 @@ func postHandler(writer http.ResponseWriter, req *http.Request) {
 	parseRequest(req, writer, &request)
 	setSource(&request, "http")
 	logRequest(request, "http")
-
 	validateRequest(request)
 	checkNamespace(request)
 	checkExternalMethod(request)
