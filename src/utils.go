@@ -1,29 +1,29 @@
 package src
 
 import (
-	"./constants"
-	"./structures"
 	"fmt"
 	"log"
+
+	"./structures"
 )
 
 func getMessageHeader(t string) string {
 	switch t {
 	case "rmq":
-		return constants.HEADER_RMQ_MESSAGE
+		return HEADER_RMQ_MESSAGE
 	case "http":
-		return constants.HEADER_HTTP_MESSAGE
+		return HEADER_HTTP_MESSAGE
 	case "ws":
-		return constants.HEADER_WS_MESSAGE
+		return HEADER_WS_MESSAGE
 	case "redis":
-		return constants.HEADER_REDIS_MESSAGE
+		return HEADER_REDIS_MESSAGE
 	default:
-		return constants.HEADER_UNKNOWN
+		return HEADER_UNKNOWN
 	}
 }
 
 func getNamespaceSettings(request structures.Request) structures.NamespaceSettings {
-	return constants.InfrastructureData.Infrastructure[request.Namespace]
+	return InfrastructureData.Infrastructure[request.Namespace]
 }
 
 func getMethodSettings(request structures.Request) structures.MethodSettings {

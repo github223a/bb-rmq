@@ -1,11 +1,11 @@
 package main
 
-import(
+import (
 	"./src"
 )
 
 func main() {
+	src.RmqInit()
 	go src.RedisInit()
 	go src.HttpServerInit()
-	src.RmqInit()
 }

@@ -1,15 +1,15 @@
 package src
 
 import (
-	"./constants"
-	"./entities"
-	"./methods"
-	"./structures"
+	core "bb-core"
 	"encoding/json"
 	"log"
 	"math/rand"
 	"net/http"
 	"time"
+
+	"./entities"
+	"./structures"
 )
 
 func processingExternalMethod(request structures.Request, transport http.ResponseWriter) {
@@ -20,7 +20,7 @@ func processingExternalMethod(request structures.Request, transport http.Respons
 		enableResponseListener(transport)
 	}()
 
-	if constants.CONFIG.UseCache == true && cacheTimer > 0 {
+	if CONFIG.UseCache == true && cacheTimer > 0 {
 		//request.cacheKey = getCacheKey(request)
 		sendCachedResponse(request)
 		return
@@ -37,7 +37,7 @@ func processingInternalMethod(request structures.Request) {
 	checkInternalMethod(request)
 	checkToken(request)
 
-	methods.List[request.Method].Run(request)
+	core.methods[request.Method].Run(request)
 }
 
 func validateRequest(request structures.Request) {
@@ -45,15 +45,15 @@ func validateRequest(request structures.Request) {
 
 func checkNamespace(request structures.Request) {
 	namespace := request.Namespace
-	_, ok := constants.InfrastructureData.Infrastructure[namespace]
+	_, ok := InfrastructureData.Infrastructure[namespace]
 
-	if namespace != constants.NAMESPACE_INTERNAL && !ok {
+	if namespace != NAMESPACE_INTERNAL && !ok {
 		panic("Invalid request. Namespace not found!")
 	}
 }
 
 func checkInternalMethod(request structures.Request) {
-	if methods.List[request.Method] == nil {
+	if core.methods[request.Method] == nil {
 		panic("Invalid request. Method not found!")
 	}
 
@@ -63,7 +63,7 @@ func checkExternalMethod(request structures.Request) {
 	namespaceSettings := getNamespaceSettings(request)
 	methodSettings, isExist := namespaceSettings.Methods[request.Method]
 
-	if !isExist || (isExist && constants.CONFIG.UseIsInternal == true && methodSettings.IsInternal == true) {
+	if !isExist || (isExist && CONFIG.UseIsInternal == true && methodSettings.IsInternal == true) {
 		panic("Invalid request. Method not found!")
 	}
 }
@@ -76,13 +76,13 @@ func sendCachedResponse(request structures.Request) {
 }
 
 func cacheResponse(response structures.SuccessResponse) {
-	methodSettings := getMethodSettings(structures.Request{Namespace:response.Namespace, Method:response.Method})
+	methodSettings := getMethodSettings(structures.Request{Namespace: response.Namespace, Method: response.Method})
 	seconds := methodSettings.Cache / 1000
 
 	err := entities.Redis.Client.Set(*response.CacheKey, response.Result, time.Duration(seconds)).Err()
 	FailOnError(err, "Error on cache response.", "redis")
 	if err == nil {
-		log.Printf("%s Response with namespace = %s, method = %s was cached!", constants.HEADER_REDIS_MESSAGE, response.Namespace, response.Method)
+		log.Printf("%s Response with namespace = %s, method = %s was cached!", HEADER_REDIS_MESSAGE, response.Namespace, response.Method)
 	}
 }
 
@@ -90,15 +90,11 @@ func getCacheKey(request structures.Request) string {
 	return "cache key"
 }
 
-func getDeliveryKey(request structures.Request) string {
-	return "delivery key"
-}
-
 func sendResponseToClient(parsedMessage map[string]interface{}, fromCache bool) {
 	source := parsedMessage["source"].(string)
 	deliveryKey := parsedMessage["deliveryKey"]
 
-	if constants.CONFIG.UseCache == true && parsedMessage["cacheKey"] != nil && fromCache == false {
+	if CONFIG.UseCache == true && parsedMessage["cacheKey"] != nil && fromCache == false {
 		var successResponse structures.SuccessResponse
 		respB, _ := json.Marshal(parsedMessage)
 		json.Unmarshal(respB, &successResponse)
@@ -116,7 +112,7 @@ func sendResponseToClient(parsedMessage map[string]interface{}, fromCache bool) 
 		sendByWs(parsedMessage)
 		break
 	default:
-		log.Printf("%s Unknown source, can't send response %s", constants.HEADER_RMQ_MESSAGE, parsedMessage)
+		log.Printf("%s Unknown source, can't send response %s", HEADER_RMQ_MESSAGE, parsedMessage)
 	}
 }
 
@@ -133,7 +129,7 @@ func massSending(message map[string]interface{}) {
 
 }
 
-func applyAfterMiddlewares(parsedMessage map[string] interface{}) {
+func applyAfterMiddlewares(parsedMessage map[string]interface{}) {
 
 }
 
