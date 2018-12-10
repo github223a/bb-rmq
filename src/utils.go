@@ -1,16 +1,14 @@
 package src
 
 import (
+	rmq "bb_rmq"
 	"fmt"
 	"log"
-
-	"./structures"
 )
 
 func getMessageHeader(t string) string {
 	switch t {
-	case "rmq":
-		return HEADER_RMQ_MESSAGE
+
 	case "http":
 		return HEADER_HTTP_MESSAGE
 	case "ws":
@@ -22,11 +20,11 @@ func getMessageHeader(t string) string {
 	}
 }
 
-func getNamespaceSettings(request structures.Request) structures.NamespaceSettings {
+func getNamespaceSettings(request rmq.Request) rmq.NamespaceSettings {
 	return InfrastructureData.Infrastructure[request.Namespace]
 }
 
-func getMethodSettings(request structures.Request) structures.MethodSettings {
+func getMethodSettings(request rmq.Request) rmq.MethodSettings {
 	return getNamespaceSettings(request).Methods[request.Method]
 }
 
@@ -37,10 +35,10 @@ func FailOnError(err error, msg string, source string) {
 	}
 }
 
-func logRequest(request structures.Request, t string) {
+func logRequest(request rmq.Request, t string) {
 	fmt.Printf("%s Get request %+v\n", getMessageHeader(t), request)
 }
 
-func setSource(request *structures.Request, value string) {
+func setSource(request *rmq.Request, value string) {
 	request.Source = value
 }

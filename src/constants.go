@@ -1,9 +1,7 @@
 package src
 
 import (
-	core "bb-core"
-
-	"./structures"
+	core "bb_core"
 )
 
 func cacheConfig() core.Config {
@@ -16,10 +14,9 @@ func cacheConfig() core.Config {
 }
 
 var CONFIG = cacheConfig()
-var InfrastructureData structures.InfrastructureData
+var InfrastructureData core.InfrastructureData
 
 const NAMESPACE_INTERNAL = "internal"
-const HEADER_RMQ_MESSAGE = "[*] RabbitMQ: "
 const HEADER_HTTP_MESSAGE = "[*] HttpServer: "
 const HEADER_WS_MESSAGE = "[*] WsServer: "
 const HEADER_REDIS_MESSAGE = "[*] Redis: "

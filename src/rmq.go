@@ -1,16 +1,11 @@
 package src
 
 import (
-	core "bb-core"
-	rmq "bb-rmq"
+	core "bb_core"
+	rmq "bb_rmq"
 	"fmt"
 	"reflect"
-
-	"./entities"
-	"./structures"
 )
-
-var Rabbit = rmq.RabbitMQ{}
 
 // func getConfigValue(reflectConnection reflect.Type, variable *string, name string) {
 // 	if *variable == "" {
@@ -66,13 +61,14 @@ func getRabbitUrl() string {
 }
 
 func RmqInit() {
-	entities.Emitter = entities.CreateEmitter()
+	// entities.Emitter = entities.CreateEmitter()
 	url := getRabbitUrl()
 	fmt.Printf("url = %s\n", url)
-	core.Rabbit.InitConnection(url)
-	core.Rabbit.InitChannels(core.Config.RabbitMQ.Channels)
+
+	rabbit := Rabbit.InitConnection(url)
+	Rabbit.InitChannels(core.Config.RabbitMQ.Channels)
 
 	forever := make(chan bool)
-	core.methods["friendship"].Run(structures.Request{})
+	core.methods["friendship"].Run(Rabbit, rmq.Request{})
 	<-forever
 }

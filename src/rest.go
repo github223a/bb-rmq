@@ -1,13 +1,13 @@
 package src
 
 import (
+	rmq "bb_rmq"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 
 	"./entities"
-	"./structures"
 )
 
 func HttpServerInit() {
@@ -19,7 +19,7 @@ func HttpServerInit() {
 }
 
 func postHandler(writer http.ResponseWriter, req *http.Request) {
-	var request structures.Request
+	var request rmq.Request
 
 	parseRequest(req, writer, &request)
 	setSource(&request, "http")
@@ -37,7 +37,7 @@ func getUrl() string {
 	return fmt.Sprintf(template, host, port, path)
 }
 
-func parseRequest(req *http.Request, writer http.ResponseWriter, variable *structures.Request) {
+func parseRequest(req *http.Request, writer http.ResponseWriter, variable *rmq.Request) {
 	if req.Method != "POST" {
 		http.Error(writer, http.StatusText(405), 405)
 		return

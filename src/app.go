@@ -1,7 +1,8 @@
 package src
 
 import (
-	core "bb-core"
+	core "bb_core"
+	rmq "bb_rmq"
 	"encoding/json"
 	"log"
 	"math/rand"
@@ -9,10 +10,9 @@ import (
 	"time"
 
 	"./entities"
-	"./structures"
 )
 
-func processingExternalMethod(request structures.Request, transport http.ResponseWriter) {
+func processingExternalMethod(request rmq.Request, transport http.ResponseWriter) {
 	//fmt.Printf("%+v\n", request)
 	cacheTimer := getMethodSettings(request).Cache
 
@@ -26,12 +26,12 @@ func processingExternalMethod(request structures.Request, transport http.Respons
 		return
 	}
 	applyBeforeMiddlewares(request)
-	sendToInternal(request)
+	rmq.sendToInternal(request)
 	amt := time.Duration(rand.Intn(250))
 	time.Sleep(time.Millisecond * amt)
 }
 
-func processingInternalMethod(request structures.Request) {
+func processingInternalMethod(request rmq.Request) {
 	validateRequest(request)
 	checkNamespace(request)
 	checkInternalMethod(request)
@@ -40,10 +40,10 @@ func processingInternalMethod(request structures.Request) {
 	core.methods[request.Method].Run(request)
 }
 
-func validateRequest(request structures.Request) {
+func validateRequest(request rmq.Request) {
 }
 
-func checkNamespace(request structures.Request) {
+func checkNamespace(request rmq.Request) {
 	namespace := request.Namespace
 	_, ok := InfrastructureData.Infrastructure[namespace]
 
@@ -52,14 +52,14 @@ func checkNamespace(request structures.Request) {
 	}
 }
 
-func checkInternalMethod(request structures.Request) {
+func checkInternalMethod(request rmq.Request) {
 	if core.methods[request.Method] == nil {
 		panic("Invalid request. Method not found!")
 	}
 
 }
 
-func checkExternalMethod(request structures.Request) {
+func checkExternalMethod(request rmq.Request) {
 	namespaceSettings := getNamespaceSettings(request)
 	methodSettings, isExist := namespaceSettings.Methods[request.Method]
 
@@ -68,15 +68,15 @@ func checkExternalMethod(request structures.Request) {
 	}
 }
 
-func checkToken(request structures.Request) {
+func checkToken(request rmq.Request) {
 }
 
-func sendCachedResponse(request structures.Request) {
+func sendCachedResponse(request rmq.Request) {
 
 }
 
-func cacheResponse(response structures.SuccessResponse) {
-	methodSettings := getMethodSettings(structures.Request{Namespace: response.Namespace, Method: response.Method})
+func cacheResponse(response rmq.SuccessResponse) {
+	methodSettings := getMethodSettings(rmq.Request{Namespace: response.Namespace, Method: response.Method})
 	seconds := methodSettings.Cache / 1000
 
 	err := entities.Redis.Client.Set(*response.CacheKey, response.Result, time.Duration(seconds)).Err()
@@ -86,7 +86,7 @@ func cacheResponse(response structures.SuccessResponse) {
 	}
 }
 
-func getCacheKey(request structures.Request) string {
+func getCacheKey(request rmq.Request) string {
 	return "cache key"
 }
 
@@ -95,7 +95,7 @@ func sendResponseToClient(parsedMessage map[string]interface{}, fromCache bool) 
 	deliveryKey := parsedMessage["deliveryKey"]
 
 	if CONFIG.UseCache == true && parsedMessage["cacheKey"] != nil && fromCache == false {
-		var successResponse structures.SuccessResponse
+		var successResponse rmq.SuccessResponse
 		respB, _ := json.Marshal(parsedMessage)
 		json.Unmarshal(respB, &successResponse)
 		cacheResponse(successResponse)
@@ -133,6 +133,6 @@ func applyAfterMiddlewares(parsedMessage map[string]interface{}) {
 
 }
 
-func applyBeforeMiddlewares(request structures.Request) {
+func applyBeforeMiddlewares(request rmq.Request) {
 
 }
