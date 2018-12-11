@@ -66,9 +66,15 @@ func RmqInit() {
 	fmt.Printf("url = %s\n", url)
 
 	rabbit := Rabbit.InitConnection(url)
-	Rabbit.InitChannels(core.Config.RabbitMQ.Channels)
+	rabbit.InitChannels(core.Config.RabbitMQ.Channels)
 
 	forever := make(chan bool)
 	core.methods["friendship"].Run(Rabbit, rmq.Request{})
+
 	<-forever
+}
+
+type connect interface {
+	init()
+	close()
 }
