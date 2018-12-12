@@ -2,17 +2,29 @@ package src
 
 import (
 	core "bb_core"
-	"fmt"
+	"encoding/json"
+	"log"
 )
 
 func GetConfig() ConfigStructure {
-	fmt.Printf("1111 %+v\n", core.Data.Config)
+	// config, ok := core.Data.Config.(ConfigStructure)
+	// fmt.Printf("\nconfig %+v\n", config)
 
-	config, ok := core.Data.Config.(ConfigStructure)
-	fmt.Printf("\nconfig %+v\n", config)
+	// if !ok {
+	// 	panic("Can't structuring config.")
+	// }
 
-	if !ok {
-		panic("Can't structuring config.")
+	var config ConfigStructure
+
+	bytes, err := json.Marshal(core.Data.Config)
+
+	if err != nil {
+		log.Fatal("Error on marshal config", err)
+	}
+
+	err2 := json.Unmarshal(bytes, &config)
+	if err2 != nil {
+		log.Fatal("error on unmarshal config", err2)
 	}
 
 	return config
@@ -40,10 +52,10 @@ type ConfigStructure struct {
 	UseIsInternal bool       `json:"useIsInternal"`
 	Location      Location   `json:"location"`
 	Redis         core.Redis `json:"redis"`
-	// core.CommonConfig
-	Log         core.Log      `json:"log"`
-	RabbitMQ    core.RabbitMQ `json:"rabbitMQ"`
-	PingTimeout int           `json:"pingTimeout"`
+	core.CommonConfig
+	// Log      core.Log      `json:"log"`
+	// RabbitMQ core.RabbitMQ `json:"rabbitMQ"`
+	// PingTimeout int           `json:"pingTimeout"`
 }
 
 type Location struct {
@@ -52,15 +64,15 @@ type Location struct {
 }
 
 type Ws struct {
-	Host string `json:"host"`
-	Port int    `json:"port"`
-	Path string `json:"path"`
+	Host string  `json:"host"`
+	Port float64 `json:"port"`
+	Path string  `json:"path"`
 }
 
 type Rest struct {
-	Host string `json:"host"`
-	Port int    `json:"port"`
-	Path string `json:"path"`
+	Host string  `json:"host"`
+	Port float64 `json:"port"`
+	Path string  `json:"path"`
 }
 
 // {
