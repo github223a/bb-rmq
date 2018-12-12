@@ -1,12 +1,5 @@
 package src
 
-import (
-	core "bb_core"
-	rmq "bb_rmq"
-	"fmt"
-	"reflect"
-)
-
 // func getConfigValue(reflectConnection reflect.Type, variable *string, name string) {
 // 	if *variable == "" {
 // 		field, _ := reflectConnection.FieldByName(name)
@@ -40,38 +33,18 @@ import (
 // 	return queueOptions[name].(bool)
 // }
 
-func getRabbitUrl() string {
-	template := "%s://%s:%s@%s:%d"
-	protocol, hostname, username, password, port :=
-		core.Config.RabbitMQ.Connection.Protocol,
-		core.Config.RabbitMQ.Connection.Hostname,
-		core.Config.RabbitMQ.Connection.Username,
-		core.Config.RabbitMQ.Connection.Password,
-		core.Config.RabbitMQ.Connection.Port
-
-	reflectConnection := reflect.TypeOf(CONFIG.RabbitMQ.Connection)
-
-	// getConfigValue(reflectConnection, &protocol, "Protocol")
-	// getConfigValue(reflectConnection, &hostname, "Hostname")
-	// getConfigValue(reflectConnection, &username, "Username")
-	// getConfigValue(reflectConnection, &password, "Password")
-	// getConfigIntValue(reflectConnection, &port, "Port")
-
-	return fmt.Sprintf(template, protocol, username, password, hostname, port)
-}
-
 func RmqInit() {
 	// entities.Emitter = entities.CreateEmitter()
-	url := getRabbitUrl()
-	fmt.Printf("url = %s\n", url)
+	// url := getRabbitUrl()
+	// fmt.Printf("url = %s\n", url)
 
-	rabbit := Rabbit.InitConnection(url)
-	rabbit.InitChannels(core.Config.RabbitMQ.Channels)
+	// rabbit := Rabbit.InitConnection(url)
+	// rabbit.InitChannels(conf.RabbitMQ.Channels)
 
-	forever := make(chan bool)
-	core.methods["friendship"].Run(Rabbit, rmq.Request{})
+	// forever := make(chan bool)
+	// core.methods["friendship"].Run(Rabbit, rmq.Request{})
 
-	<-forever
+	// <-forever
 }
 
 type connect interface {

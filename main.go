@@ -2,26 +2,19 @@ package main
 
 import (
 	core "bb_core"
+	"fmt"
+
+	src "./src"
 )
 
-/*Config lalala*/
-var Config ConfigStrucuture
-
 func main() {
-	core.Data.InitConfig()
-	// fmt.Printf("%+v\n", core.Data.Config)
+	core.Data.InitCore()
 
-	// bytes, _ := json.Marshal(core.Data.Config)
-	// json.Unmarshal([]byte(bytes), &Config)
-	// core.Data.Config = Config
+	x := src.GetConfig()
 
-	// fmt.Printf("Config ===== %+v\n", Config)
-	// fmt.Printf("ALLALA \n%s", core.Data.Config.Namespace)
-
-	// data, _ := json.MarshalIndent(core.Data.Config, ",", " ")
-	// fmt.Printf("%+v\n", string(data))
-
-	// core.Data.Rabbit.InitConnection()
+	fmt.Printf("%+v\n", x)
+	// fmt.Printf("%+v\n", core.Data.Infrastructure)
+	// rmq.Rabbit.InitConnection(rmq.GetRabbitUrl()
 	// go src.RedisInit()
 	// go src.HttpServerInit()
 }
