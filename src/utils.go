@@ -2,31 +2,32 @@ package src
 
 import (
 	core "bb_core"
-	"fmt"
+	"encoding/json"
+	"log"
 )
 
 func GetConfig() ConfigStructure {
-	fmt.Printf("\11111111 %+v\n", core.Data.Config)
+	// fmt.Printf("\11111111 %+v\n", core.Data.Config)
 
-	config, ok := core.Data.Config.(ConfigStructure)
-	fmt.Printf("\nconfig %+v\n", config)
+	// config, ok := core.Data.Config.(ConfigStructure)
+	// fmt.Printf("\nconfig %+v\n", config)
 
-	if !ok {
-		panic("Can't structuring config.")
+	// if !ok {
+	// 	panic("Can't structuring config.")
+	// }
+
+	var config ConfigStructure
+
+	bytes, err := json.Marshal(core.Data.Config)
+
+	if err != nil {
+		log.Fatal("Error on marshal config", err)
 	}
 
-	// var config ConfigStructure
-
-	// bytes, err := json.Marshal(core.Data.Config)
-
-	// if err != nil {
-	// 	log.Fatal("Error on marshal config", err)
-	// }
-
-	// err2 := json.Unmarshal(bytes, &config)
-	// if err2 != nil {
-	// 	log.Fatal("error on unmarshal config", err2)
-	// }
+	err2 := json.Unmarshal(bytes, &config)
+	if err2 != nil {
+		log.Fatal("error on unmarshal config", err2)
+	}
 
 	return config
 }

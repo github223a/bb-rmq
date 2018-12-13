@@ -13,11 +13,13 @@ import (
 
 func HttpServerInit() {
 	rest := GetConfig().Location.Rest
-	http.HandleFunc(rest.Path, postHandler) // set router
 	port := strconv.FormatInt(rest.Port, 10)
-	log.Printf(HEADER_HTTP_MESSAGE+"Server is starting by url %s", getUrl())
-	err := http.ListenAndServe(port, nil) // set listen port
-	core.FailOnError(HEADER_HTTP_MESSAGE, "Error on start http server.", err)
+
+	core.LogDebug(HEADER_HTTP_MESSAGE, fmt.Sprintf("Server is starting by url %s", getURL()))
+
+	http.HandleFunc(rest.Path, postHandler)   // set router
+	err := http.ListenAndServe(":"+port, nil) // set listen port
+	core.FailOnError(HEADER_HTTP_MESSAGE, "Error on start http server", err)
 }
 
 func postHandler(writer http.ResponseWriter, req *http.Request) {
@@ -32,9 +34,10 @@ func postHandler(writer http.ResponseWriter, req *http.Request) {
 	processingExternalMethod(request, writer)
 }
 
-func getUrl() string {
+func getURL() string {
 	template := "http://%s:%d%s"
-	host, path, port := GetConfig().Location.Rest.Host, GetConfig().Location.Rest.Path, GetConfig().Location.Rest.Port
+	rest := GetConfig().Location.Rest
+	host, path, port := rest.Host, rest.Path, rest.Port
 
 	return fmt.Sprintf(template, host, port, path)
 }
