@@ -9,12 +9,10 @@ import (
 
 func main() {
 	core.Data.InitCore()
-
 	x := src.GetConfig()
-	fmt.Printf("%+v\n", x.Namespace)
 
-	// fmt.Printf("%+v\n", core.Data.Infrastructure)
-	// rmq.Rabbit.InitConnection(rmq.GetRabbitUrl()
+	fmt.Print(x)
+	// rmq.Rabbit.InitConnection(rmq.GetRabbitUrl(src.GetConfig().RabbitMQ))
 	// go src.RedisInit()
 	// go src.HttpServerInit()
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 
 	"./entities"
 )
@@ -13,7 +14,7 @@ import (
 func HttpServerInit() {
 	rest := GetConfig().Location.Rest
 	http.HandleFunc(rest.Path, postHandler) // set router
-	port := fmt.Sprintf(":%d", rest.Port)
+	port := strconv.FormatInt(rest.Port, 10)
 	log.Printf(HEADER_HTTP_MESSAGE+"Server is starting by url %s", getUrl())
 	err := http.ListenAndServe(port, nil) // set listen port
 	core.FailOnError(HEADER_HTTP_MESSAGE, "Error on start http server.", err)

@@ -2,30 +2,31 @@ package src
 
 import (
 	core "bb_core"
-	"encoding/json"
-	"log"
+	"fmt"
 )
 
 func GetConfig() ConfigStructure {
-	// config, ok := core.Data.Config.(ConfigStructure)
-	// fmt.Printf("\nconfig %+v\n", config)
+	fmt.Printf("\11111111 %+v\n", core.Data.Config)
 
-	// if !ok {
-	// 	panic("Can't structuring config.")
+	config, ok := core.Data.Config.(ConfigStructure)
+	fmt.Printf("\nconfig %+v\n", config)
+
+	if !ok {
+		panic("Can't structuring config.")
+	}
+
+	// var config ConfigStructure
+
+	// bytes, err := json.Marshal(core.Data.Config)
+
+	// if err != nil {
+	// 	log.Fatal("Error on marshal config", err)
 	// }
 
-	var config ConfigStructure
-
-	bytes, err := json.Marshal(core.Data.Config)
-
-	if err != nil {
-		log.Fatal("Error on marshal config", err)
-	}
-
-	err2 := json.Unmarshal(bytes, &config)
-	if err2 != nil {
-		log.Fatal("error on unmarshal config", err2)
-	}
+	// err2 := json.Unmarshal(bytes, &config)
+	// if err2 != nil {
+	// 	log.Fatal("error on unmarshal config", err2)
+	// }
 
 	return config
 }
@@ -64,15 +65,15 @@ type Location struct {
 }
 
 type Ws struct {
-	Host string  `json:"host"`
-	Port float64 `json:"port"`
-	Path string  `json:"path"`
+	Host string `json:"host"`
+	Port int64  `json:"port"`
+	Path string `json:"path"`
 }
 
 type Rest struct {
-	Host string  `json:"host"`
-	Port float64 `json:"port"`
-	Path string  `json:"path"`
+	Host string `json:"host"`
+	Port int64  `json:"port"`
+	Path string `json:"path"`
 }
 
 // {
